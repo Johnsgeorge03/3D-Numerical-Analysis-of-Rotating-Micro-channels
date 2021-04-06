@@ -40,11 +40,18 @@ FX(NX_ + 2, 0.0), FY(NY_ + 2, 0.0), FZ(NZ_ + 2, 0.0)
     setFZ(Z, ZC, FZ);
 }
 
+
+Mesh::~Mesh()
+{
+
+}
+
+
 void Mesh::setX(vector<double>& vecX)
 {
 
     vecX[0] = beginX;
-    for(int i = 1 ; i<vecX.size(); i++)
+    for(unsigned int i = 1 ; i<vecX.size(); i++)
     {
         vecX[i] =  vecX[i-1] + dx;
     }
@@ -55,7 +62,7 @@ void Mesh::setY(vector<double>& vecY)
 {
 
     vecY[0] = beginY;
-    for(int i = 1 ; i<vecY.size(); i++)
+    for(unsigned int i = 1 ; i<vecY.size(); i++)
     {
         vecY[i] =  vecY[i-1] + dy;
     }
@@ -66,7 +73,7 @@ void Mesh::setZ(vector<double>& vecZ)
 {
 
     vecZ[0] = beginZ;
-    for(int i = 1 ; i<vecZ.size(); i++)
+    for(unsigned int i = 1 ; i<vecZ.size(); i++)
     {
         vecZ[i] =  vecZ[i-1] + dz;
     }
@@ -77,7 +84,7 @@ void Mesh::setXC(vector<double>& vecX, vector<double>& vecXC)
 {
 
     vecXC[0] = beginX;
-    for(int i =  1; i < vecXC.size(); i++)
+    for(unsigned int i =  1; i < vecXC.size(); i++)
     {
         vecXC[i] = (vecX[i] + vecX[i-1])*0.5;
     }
@@ -88,7 +95,7 @@ void Mesh::setYC(vector<double>& vecY, vector<double>& vecYC)
 {
 
     vecYC[0] = beginY;
-    for(int i =  1; i < vecYC.size(); i++)
+    for(unsigned int i =  1; i < vecYC.size(); i++)
     {
         vecYC[i] = (vecY[i] + vecY[i-1])*0.5;
     }
@@ -99,7 +106,7 @@ void Mesh::setZC(vector<double>& vecZ, vector<double>& vecZC)
 {
 
     vecZC[0] = beginZ;
-    for(int i =  1; i < vecZC.size(); i++)
+    for(unsigned int i =  1; i < vecZC.size(); i++)
     {
         vecZC[i] = (vecZ[i] + vecZ[i-1])*0.5;
     }
@@ -108,14 +115,14 @@ void Mesh::setZC(vector<double>& vecZ, vector<double>& vecZC)
 }
 void Mesh::setFX(vector<double>& vecX, vector<double>& vecXC, vector<double>& vecFX)
 {
-    for(int i = 0; i< vecX.size(); i++)
+    for(unsigned int i = 0; i< vecX.size(); i++)
     {
         vecFX[i] = (vecX[i] - vecXC[i])/(vecXC[i+1] - vecXC[i]);
     }
 }
 void Mesh::setFY(vector<double>& vecY, vector<double>& vecYC, vector<double>& vecFY)
 {
-    for(int i = 0; i< vecY.size(); i++)
+    for(unsigned int i = 0; i< vecY.size(); i++)
     {
         vecFY[i] = (vecY[i] - vecYC[i])/(vecYC[i+1] - vecYC[i]);
     }
@@ -123,15 +130,26 @@ void Mesh::setFY(vector<double>& vecY, vector<double>& vecYC, vector<double>& ve
 }
 void Mesh::setFZ(vector<double>& vecZ, vector<double>& vecZC, vector<double>& vecFZ)
 {
-    for(int i = 0; i< vecZ.size(); i++)
+    for(unsigned int i = 0; i< vecZ.size(); i++)
     {
         vecFZ[i] = (vecZ[i] - vecZC[i])/(vecZC[i+1] - vecZC[i]);
     }
 
 }
 
-
-Mesh::~Mesh()
+int Mesh::getNI()
 {
-
+    return NI;
 }
+
+int Mesh::getNJ()
+{
+    return NJ;
+}
+
+int Mesh::getNK()
+{
+    return NK;
+}
+
+

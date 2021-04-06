@@ -8,6 +8,12 @@ using std::vector;
 
 class Mesh
 {
+private:
+    double beginX, beginY, beginZ;
+    int NX, NY, NZ, NI, NJ, NK, NIM , NJM, NKM;
+    double lengthX, lengthY, lengthZ;
+    double dx, dy, dz;
+
 public:
     Mesh(double&, double&, double&, int&, int&, int&, double&, double&, double&);
     virtual ~Mesh();
@@ -31,13 +37,10 @@ public:
     void setFX(vector<double>&, vector<double>&, vector<double>&);
     void setFY(vector<double>&, vector<double>&, vector<double>&);
     void setFZ(vector<double>&, vector<double>&, vector<double>&);
+    int getNI();
+    int getNJ();
+    int getNK();
 
-
-private:
-    double beginX, beginY, beginZ;
-    int NX, NY, NZ, NI, NJ, NK, NIM , NJM, NKM;
-    double lengthX, lengthY, lengthZ;
-    double dx, dy, dz;
 };
 
 #endif
