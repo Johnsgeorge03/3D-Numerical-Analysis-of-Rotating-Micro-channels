@@ -16,12 +16,13 @@ public:
 	typedef vector<FiniteMatrix> Svector1d;
 	typedef FiniteMatrix::finiteMat Svector; // same as that of finiteMat, just a name change
 
-	void relax(Fields::vec3dField&);
-	void resetEqn();
+	//void relax(Fields::vec3dField&);
+	//void resetEqn();
 	//void noWallShearXBoundaryCondition(Fields::vec3dField&);
 	//void noWallShearYBoundaryCondition(Fields::vec3dField&);
 	//void noWallShearZBoundaryCondition(Fields::vec3dField&);
-	void assembleEquation(Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&);
+	void assembleEquation(Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&
+				,int&);
 	void assemblePressureEquation();
 
 	Fields::vec3dField solveVelocity(Fields::vec3dField&, unsigned int& );

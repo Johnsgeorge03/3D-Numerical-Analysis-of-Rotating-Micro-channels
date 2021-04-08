@@ -3,7 +3,7 @@
 #pragma once //just include once
 #include<iostream>
 #include<vector>
-
+#include<cassert>
 using std::vector;
 
 template<typename T>

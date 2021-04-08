@@ -20,8 +20,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Fe = massFluxEast[i][j][k].value;
 		double De = (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
 
-		APTemp[i][j][k].ae     =  max(max(-Fe , (De - Fe/2.0)), 0.0);
-		APTemp[i+1][j][k].aw   =  max(max( Fe , (De + Fe/2.0)), 0.0);
+		APTemp[i][j][k].ae     =  (De - Fe/2.0);//max(max(-Fe , (De - Fe/2.0)), 0.0);
+		APTemp[i+1][j][k].aw   =  (De + Fe/2.0);//max(max( Fe , (De + Fe/2.0)), 0.0);
 	}
 
 
@@ -31,8 +31,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Fn = massFluxNorth[i][j][k].value;
 		double Dn = (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
 	
-		APTemp[i][j][k].an     =  max(max(-Fn , (Dn - Fn/2.0)), 0.0);
-		APTemp[i][j+1][k].as   =  max(max( Fn , (Dn + Fn/2.0)), 0.0);
+		APTemp[i][j][k].an     =  (Dn - Fn/2.0);//max(max(-Fn , (Dn - Fn/2.0)), 0.0);
+		APTemp[i][j+1][k].as   =  (Dn + Fn/2.0);//max(max( Fn , (Dn + Fn/2.0)), 0.0);
 
 	
 	}
@@ -43,8 +43,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Ft = massFluxTop[i][j][k].value;
 		double Dt = (vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
 
-		APTemp[i][j][k].at     =  max(max(-Ft , (Dt - Ft/2.0)), 0.0);
-		APTemp[i][j][k+1].ab   =  max(max( Ft , (Dt + Ft/2.0)), 0.0);
+		APTemp[i][j][k].at     = (Dt - Ft/2.0); //max(max(-Ft , (Dt - Ft/2.0)), 0.0);
+		APTemp[i][j][k+1].ab   = (Dt + Ft/2.0); //max(max( Ft , (Dt + Ft/2.0)), 0.0);
 	
 	}
 
@@ -260,7 +260,7 @@ FiniteMatrix::finiteMat timeCoeff(Fields::vec3dField& vec, Solution& sol_) // re
 
 
 
-// for pressure correction
+// for pressure correction **************its not massflux wall velocity****************
 FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
 {
 	// recieves the massfluxes and velocity field ( only for distance, viscosity and surface area)

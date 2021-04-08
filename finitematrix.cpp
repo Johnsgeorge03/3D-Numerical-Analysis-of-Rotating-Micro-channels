@@ -37,7 +37,7 @@ FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat& lhs, const Fini
 
 
 // && element wise multiplication** *** NOT matrix multiplication *****
-FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat& lhs, const FiniteMatrix::finiteMat&rhs)
+FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat& lhs, const FiniteMatrix::finiteMat& rhs)
 {
 	FiniteMatrix::finiteMat result(lhs);
 

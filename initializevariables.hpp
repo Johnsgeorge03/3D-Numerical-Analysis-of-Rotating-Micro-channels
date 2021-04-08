@@ -1,6 +1,6 @@
-int NX = 20, NY = 20, NZ = 60;
-double lengthX = 2e-5, lengthY = 3e-5, lengthZ = 9e-5;
-double beginX = 0.0, beginY = 0.0 , beginZ = 0;
+int NX = 30, NY = 30, NZ = 90;
+double lengthX = 0.003, lengthY = 0.003, lengthZ = 0.009;
+double beginX = 0.0, beginY = 0.0 , beginZ = 0.001;
 
 Mesh mymesh_ (beginX, beginY, beginZ, NX, NY, NZ, lengthX, lengthY, lengthZ);
 
@@ -16,6 +16,10 @@ Fields fieldOper(NI, NJ, NK);
 Fields::vec3dField U (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField V (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField W (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField U_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField V_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField W_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+
 Fields::vec3dField P (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField UW (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField UWC (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
@@ -111,7 +115,7 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
    // fieldOper.boundaryCondition(U,top, 5.0);
    // fieldOper.boundaryCondition(U,bottom, 6.0);
    // fieldOper.print3dmat(U);
-    //fieldOper.initializeInternalField(P, 0.2);
+    fieldOper.initializeInternalField(P, 0.2);
    // fieldOper.copyInternalField(P, PP);
    // fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, north);
    // fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, south);

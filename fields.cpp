@@ -154,7 +154,7 @@ void Fields::boundaryCondition(Fields::vec3dField& vec,string& wallname, double 
 
 
 
-void Fields::print3dmat(Fields::vec3dField& vec)
+void Fields::print3dmat(const Fields::vec3dField& vec)
 {
 	for(unsigned int i = 0; i<vec.size(); i++)
 	{
@@ -162,7 +162,7 @@ void Fields::print3dmat(Fields::vec3dField& vec)
 		{
 			for ( unsigned int k = 0; k<vec[i][j].size(); k++)
 			{
-				cout << vec[i][j][k].value << " ";
+				cout << vec[i][j][k].value<< " ";
 			}
 			cout << endl;
 		}
@@ -243,4 +243,6 @@ void Fields::copyOutletVelocity(Fields::vec3dField& vec)
 		vec[i][j][k].value = vec[i][j][k-1].value;
 	}
 
-}	
+}
+
+

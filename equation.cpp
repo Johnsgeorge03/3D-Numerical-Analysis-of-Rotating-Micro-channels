@@ -63,7 +63,7 @@ RES(Fmatrix.size(),vector<vector<FiniteMatrix>>(Fmatrix[0].size(), vector<Finite
 	
 }
 
-void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
+void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, int& iter)
 {
 // only for the internal cvs and not the boundary and boundary neighbours
 	for(unsigned int i = 1; i<AP.size() - 1; i++)
@@ -80,6 +80,12 @@ void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dF
 				    + massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value;
 
 				rAP[i][j][k].value = 1.0/AP[i][j][k].value; // reciprocal of AP
+				if(iter > 0)
+				{
+					assert(AP[i][j][k].value > (AE[i][j][k].value + AW[i][j][k].value
+				    				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				    				+ AT[i][j][k].value));
+ 				}
 			}
 		}
 	}
@@ -100,6 +106,7 @@ void Equation::assemblePressureEquation()
 						+ AN[i][j][k].value + AT[i][j][k].value + AB[i][j][k].value;
 
 				rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+
 			}
 		}
 	}
@@ -112,6 +119,8 @@ void Equation::assemblePressureEquation()
 Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int& iterations)
 {
 	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phiold (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	phiold = phi;
 	for(unsigned int iter = 1; iter<= iterations; iter++)
 	{
 		for(unsigned int i = 1; i< phi.size() - 1; i++)
@@ -123,27 +132,30 @@ Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int
 					phi[i][j][k].value = rAP[i][j][k].value*(AW[i][j][k].value*phi[i-1][j][k].value
 					+ AE[i][j][k].value*phi[i+1][j][k].value + AS[i][j][k].value*phi[i][j-1][k].value
 					+ AN[i][j][k].value*phi[i][j+1][k].value + AB[i][j][k].value*phi[i][j][k-1].value
-					+ AT[i][j][k].value*phi[i][j][k+1].value + APNot[i][j][k].value*phi[i][j][k].value
+					+ AT[i][j][k].value*phi[i][j][k+1].value + APNot[i][j][k].value*phiold[i][j][k].value
 					+ SP[i][j][k].value + SF[i][j][k].value);
 				}
 			}
 
 		}
-	}			
+	}
 	
+		
 	forAll(phi)
 	{
 		phitemp[i][j][k].value = phi[i][j][k].value;
+		
 	}
+	
+	
 	return phitemp;
-
-
 }
 
 // pass pressure
 Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int& iterations)
 {
 	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+
 	for(unsigned int iter = 1; iter<= iterations; iter++)
 	{
 		for(unsigned int i = 1; i< phi.size() - 1; i++)
@@ -181,11 +193,11 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 
 		forAllInternal(wallvel)
 		{
-			double dP = vel[i][j][k].Se/rAP[i][j][k].value;
-			double dE = vel[i+1][j][k].Se/rAP[i+1][j][k].value;
+			double dP = vel[i][j][k].Se*rAP[i][j][k].value;
+			double dE = vel[i+1][j][k].Se*rAP[i+1][j][k].value;
 			double de = (dE + dP)/2.0;
 			wallvel[i][j][k].de = de;
-
+		//cout<< "Se " <<vel[i][j][k].Se<<" reci "<<rAP[i][j][k].value<<" dP = "<<dP<<" dE = "<<dE<<" de = "<<de<<endl;
 			wallvel[i][j][k].value = (vel[i][j][k].value + vel[i+1][j][k].value)/2.0 - (SP[i][j][k].value
 			+ SP[i+1][j][k].value)/2.0 + de*(pressure[i][j][k].value - pressure[i+1][j][k].value);
 		}
@@ -210,8 +222,8 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 
 		forAllInternal(wallvel)
 		{
-			double dP = vel[i][j][k].Sn/rAP[i][j][k].value;
-			double dN = vel[i][j+1][k].Sn/rAP[i][j+1][k].value;
+			double dP = vel[i][j][k].Sn*rAP[i][j][k].value;
+			double dN = vel[i][j+1][k].Sn*rAP[i][j+1][k].value;
 			double dn = (dN + dP)/2.0;
 			wallvel[i][j][k].dn = dn;
 
@@ -245,8 +257,8 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 
 		forAllInternal(wallvel)
 		{
-			double dP = vel[i][j][k].St/rAP[i][j][k].value;
-			double dT = vel[i][j][k+1].St/rAP[i][j][k+1].value;
+			double dP = vel[i][j][k].St*rAP[i][j][k].value;
+			double dT = vel[i][j][k+1].St*rAP[i][j][k+1].value;
 			double dt = (dT + dP)/2.0;
 			wallvel[i][j][k].dt = dt;
 
@@ -265,7 +277,7 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 		forTopBoundary(wallvel)
 		{
 			wallvel[i][j][k].value = vel[i][j][k+1].value;
-			wallvel[i][j][k].dt = vel[i][j][k].St/(2*rAP[i][j][k].value);
+			wallvel[i][j][k].dt = vel[i][j][k].St*rAP[i][j][k].value/2.0;
 		}
 
 		return wallvel;
@@ -363,8 +375,8 @@ Fields::vec3dField Equation::massFluxCalculation(Fields::vec3dField& wallvel, Fi
 
 
 
-Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& P, Fields::vec3dField& UW, 
-						Fields::vec3dField& VW, Fields::vec3dField& WW, int& direction)
+Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWall, 
+						Fields::vec3dField& VWall, Fields::vec3dField& WWall, int& direction)
 {
 	if(direction == 1) // U vel correction
 	{
@@ -372,7 +384,7 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& P, Fields::v
 
 		forAllInternal(wallvel)
 		{
-			wallvel[i][j][k].value = UW[i][j][k].de*(P[i][j][k].value - P[i+1][j][k].value);
+			wallvel[i][j][k].value = UWall[i][j][k].de*(PCorr[i][j][k].value - PCorr[i+1][j][k].value);
 		}
 
 		return wallvel;
@@ -385,7 +397,7 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& P, Fields::v
 
 		forAllInternal(wallvel)
 		{
-			wallvel[i][j][k].value = VW[i][j][k].dn*(P[i][j][k].value - P[i][j+1][k].value);
+			wallvel[i][j][k].value = VWall[i][j][k].dn*(PCorr[i][j][k].value - PCorr[i][j+1][k].value);
 
 		}
 
@@ -402,13 +414,13 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& P, Fields::v
 		forAllInternal(wallvel)
 		{
 
-			wallvel[i][j][k].value = WW[i][j][k].dt*(P[i][j][k].value - P[i][j][k+1].value);
+			wallvel[i][j][k].value = WWall[i][j][k].dt*(PCorr[i][j][k].value - PCorr[i][j][k+1].value);
 	
 		}
 		
 		forTopBoundary(wallvel)
 		{
-			wallvel[i][j][k].value = WW[i][j][k].dt*(P[i][j][k].value - P[i][j][k+1].value);
+			wallvel[i][j][k].value = WWall[i][j][k].dt*(PCorr[i][j][k].value - PCorr[i][j][k+1].value);
 		}
 
 
@@ -424,8 +436,7 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& P, Fields::v
 
 
 
-Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& P, Fields::vec3dField& UWC, Fields::vec3dField& VWC,
-				Fields::vec3dField& WWC, int& direction)
+Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWCorr, Fields::vec3dField& VWCorr, Fields::vec3dField& WWCorr, int& direction)
 {
 	if(direction == 1) // east direction mass flux correction
 	{
@@ -433,7 +444,7 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& P, Fields::v
 	
 		forAllInternal(massFlux)
 		{
-			massFlux[i][j][k].value = P[i][j][k].Se*P[i][j][k].density*UWC[i][j][k].value;
+			massFlux[i][j][k].value = PCorr[i][j][k].Se*PCorr[i][j][k].density*UWCorr[i][j][k].value;
 		}
 		
 		return massFlux;
@@ -445,7 +456,7 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& P, Fields::v
 	
 		forAllInternal(massFlux)
 		{
-			massFlux[i][j][k].value = P[i][j][k].Sn*P[i][j][k].density*VWC[i][j][k].value;
+			massFlux[i][j][k].value = PCorr[i][j][k].Sn*PCorr[i][j][k].density*VWCorr[i][j][k].value;
 		}
 		
 		return massFlux;
@@ -458,11 +469,11 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& P, Fields::v
 		
 		forAllInternal(massFlux)
 		{
-			massFlux[i][j][k].value = P[i][j][k].St*P[i][j][k].density*WWC[i][j][k].value;
+			massFlux[i][j][k].value = PCorr[i][j][k].St*PCorr[i][j][k].density*WWCorr[i][j][k].value;
 		}
 		forTopBoundary(massFlux)
 		{
-			massFlux[i][j][k].value = P[i][j][k].St*P[i][j][k].density*WWC[i][j][k].value;
+			massFlux[i][j][k].value = PCorr[i][j][k].St*PCorr[i][j][k].density*WWCorr[i][j][k].value;
 		}
 
 		return massFlux;

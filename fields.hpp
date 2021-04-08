@@ -42,11 +42,13 @@ public:
     void copyInternalField(Fields::vec3dField&, Fields::vec3dField&);
     void initializeField(Fields::vec3dField&, double);
     void initializeInternalField(Fields::vec3dField&, double);
-    void print3dmat(Fields::vec3dField&);
+    void print3dmat(const Fields::vec3dField&);
     //boundary conditions which modifieds the values of fields
     void boundaryCondition(Fields::vec3dField&, string&, double);
     void linearextrapolateCondition(Fields::vec3dField&, vector<double>&, vector<double>&, vector<double>&, string&);
     void copyOutletVelocity(Fields::vec3dField&);
+
+    //Fields::vec3dField& operator=(const Fields::vec3dField&); 
 	
 };
 

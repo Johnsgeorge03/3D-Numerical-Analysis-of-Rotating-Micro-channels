@@ -14,21 +14,21 @@ int main(int argc, char *argv[])
 {
 	#include "initializevariables.hpp"
     	#include "initializefinitematrixvar.hpp" 
-
+	
 	int iter = 0;
-	int maxit = 20;
+	int maxit = 5;
 	for(iter = 0; iter< maxit; iter++)
-	{
-		//update pressure boundary condition
-		//*******left out for now**************
-		
+	{	
+
+		cout<<"start of iteration "<<iter<<endl;
 
 		int eastdir = 1;
 		int northdir = 2; 
 		int topdir = 3;
-		unsigned int iterations = 50;
+		unsigned int iterations = 10;
 
 
+		
 		
 		//************Coefficient calculation**********************//
 		Equation *UEqn = new Equation
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 
 		);
 		
-		UEqn->assembleEquation(massFluxE, massFluxN, massFluxT);
+		UEqn->assembleEquation(massFluxE, massFluxN, massFluxT, iter);
 		
 		Equation *VEqn = new Equation
 		(
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 			+ fvm::timeCoeff(V, sol)
 		);
 
-		VEqn->assembleEquation(massFluxE, massFluxN, massFluxT);
+		VEqn->assembleEquation(massFluxE, massFluxN, massFluxT, iter);
 
 		Equation *WEqn = new Equation
 		(
@@ -60,28 +60,99 @@ int main(int argc, char *argv[])
 			+ fvm::timeCoeff(W, sol)
 		);
 
-		WEqn->assembleEquation(massFluxE, massFluxN, massFluxT);
+		WEqn->assembleEquation(massFluxE, massFluxN, massFluxT, iter);
 		//**************end of coefficient calculation********************//
+		cout<< "U"<<endl;
+		fieldOper.print3dmat(U);
+		cout<<" U end " <<endl;	
+		
+		cout<<" AP " <<endl;
+		finiteObj.print3dmat(UEqn->AP);
+		cout<<" AP end "<<endl;
+		
+		cout<<" AE " <<endl;
+		finiteObj.print3dmat(UEqn->AE);
+		cout<<" AE end "<<endl;
+		
+		cout<<" AW " <<endl;
+		finiteObj.print3dmat(UEqn->AW);
+		cout<<" AW end "<<endl;
+		
+		cout<<" AN " <<endl;
+		finiteObj.print3dmat(UEqn->AN);
+		cout<<" AN end "<<endl;
+		
+		cout<<" AS " <<endl;
+		finiteObj.print3dmat(UEqn->AS);
+		cout<<" AS end "<<endl;
+		
+		cout<<" AT " <<endl;
+		finiteObj.print3dmat(UEqn->AT);
+		cout<<" AT end "<<endl;
+		
+		cout<<" SP " <<endl;
+		finiteObj.print3dmat(UEqn->SP);
+		cout<<" SP end "<<endl;
 
+		cout<<" SF " <<endl;
+		finiteObj.print3dmat(UEqn->SF);
+		cout<<" SF end "<<endl;
 
+		cout<<" APNot " <<endl;
+		finiteObj.print3dmat(UEqn->APNot);
+		cout<<" APNot end "<<endl;
+
+		cout<<"rAP " <<endl;
+		finiteObj.print3dmat(UEqn->rAP);
+		cout<<"rAP end"<<endl;
 
 		//**************Solving the equation that satisfy only momemtum equation**************//
-		Fields::vec3dField U_ = UEqn->solveVelocity(U, iterations);
-		Fields::vec3dField V_ = VEqn->solveVelocity(V, iterations);
-		Fields::vec3dField W_ = WEqn->solveVelocity(W, iterations);
+		U_ = UEqn->solveVelocity(U, iterations);
+		V_ = VEqn->solveVelocity(V, iterations);
+		W_ = WEqn->solveVelocity(W, iterations);
 		fieldOper.copyOutletVelocity(U_);
 		fieldOper.copyOutletVelocity(V_);
 		fieldOper.copyOutletVelocity(W_);
+		fieldOper.getGridInfoPassed(U_, mymesh_, sol);
+		fieldOper.getGridInfoPassed(V_, mymesh_, sol);
+		fieldOper.getGridInfoPassed(W_, mymesh_, sol);
+
+		fieldOper.boundaryCondition(U_, north, 0.0);
+		fieldOper.boundaryCondition(U_, south, 0.0);
+		fieldOper.boundaryCondition(U_, east, 0.0);
+		fieldOper.boundaryCondition(U_, west, 0.0);
+		fieldOper.boundaryCondition(U_, bottom, 0.0);
+
+		fieldOper.boundaryCondition(V_, north, 0.0);
+		fieldOper.boundaryCondition(V_, south, 0.0);
+		fieldOper.boundaryCondition(V_, east, 0.0);
+		fieldOper.boundaryCondition(V_, west, 0.0);
+		fieldOper.boundaryCondition(V_, bottom, 0.0);
+
+		fieldOper.boundaryCondition(W_, north, 0.0);
+		fieldOper.boundaryCondition(W_, south, 0.0);
+		fieldOper.boundaryCondition(W_, east, 0.0);
+		fieldOper.boundaryCondition(W_, west, 0.0);
+		fieldOper.boundaryCondition(W_, bottom, 0.1);
+
 		//***********************end of solving partial equation******************************//
 		
+		cout<< "U_"<<endl;
+		fieldOper.print3dmat(U_);
+		cout<<" U_ end" <<endl;	
+
 
 
 		//****************momentum interpolation****************************//
 		UW = UEqn->momentumInterpolation(U_, P, eastdir);
 		VW = VEqn->momentumInterpolation(V_, P, northdir);
 		WW = WEqn->momentumInterpolation(W_, P, topdir);
+		
 		//***************end of momentum interpolation**********************//	
 		
+		cout<< "UW"<<endl;
+		fieldOper.print3dmat(UW);
+		cout<<" UW end" <<endl;	
 
 
 
@@ -91,15 +162,17 @@ int main(int argc, char *argv[])
 		massFluxN = VEqn->massFluxCalculation(VW, V, northdir);
 		massFluxT = WEqn->massFluxCalculation(WW, W, topdir);
 		//**************end of mass flux calculation***********************//
-
-
+		cout<< "massFluxE"<<endl;
+		fieldOper.print3dmat(massFluxE);
+		cout<<" massFluxE end" <<endl;	
+	
 
 
 
 		//***************pressure coefficient assembly*********************//
 		Equation *PEqn =  new Equation
 		(
-			fvm::pressureCorrectionCoeff(P, massFluxE, massFluxN, massFluxT)
+			fvm::pressureCorrectionCoeff(P, UW, VW, WW)
 			+ fvm::pressureCorrectionSource(P, massFluxE, massFluxN, massFluxT)
 		);
 
@@ -109,11 +182,14 @@ int main(int argc, char *argv[])
 
 
 
+
 		//*****************pressure correction solve************************//
-		PC =  PEqn->solvePressure(P, iterations);
+		PC =  PEqn->solvePressure(PC, iterations);
 		//*************end of pressure correction solve*********************//
 
-
+		cout<<" PC "<<endl;
+		fieldOper.print3dmat(PC);
+		cout<<" PC end "<<endl;	
 
 
 		//****************extrapolate pressure**************************//
@@ -123,7 +199,8 @@ int main(int argc, char *argv[])
 		fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, south);
 		fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, bottom);
 		//***********end of pressure extrapolation***********************//
-
+			
+		
 
 
 
@@ -137,8 +214,14 @@ int main(int argc, char *argv[])
 		massFluxNC = VEqn->massFluxCorrection(PC, UWC, VWC, WWC, northdir);
 		massFluxTC = WEqn->massFluxCorrection(PC, UWC, VWC, WWC, topdir);
 		//********* end of correction of velocity and massflux******************//
+		cout<<" UWC "<<endl;
+		fieldOper.print3dmat(UWC);
+		cout<<" UWC end "<<endl;
 
 
+		cout<< " massFluxEC "<<endl;
+		fieldOper.print3dmat(massFluxEC);
+		cout<<" massFluxEC end " <<endl;	
 
 		//*********** adding the correction********************//
 		for( unsigned int i = 0; i<UW.size();i++)
@@ -188,14 +271,25 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		U = U_;
+		V = V_;
+		W = W_;
+		delete UEqn;
+		delete VEqn;
+		delete WEqn;
+		delete PEqn;
+		
+		cout<< "massFluxE at last"<<endl;
+		fieldOper.print3dmat(massFluxE);
+		cout<<" massFluxE end" <<endl;	
 		cout<<"end of iteration "<<iter<<endl;
 	}
 	
 
 		//********* end of addition of correction***************//
 		//*********************printing out the value *****************
-		//cout<<" U solved" <<endl;
-		//fieldOper.print3dmat(massFluxE);
+	//	cout<<" U solved" <<endl;
+	//	fieldOper.print3dmat(U);
 		//cout<<" V partial solver" <<endl;
 		//fieldOper.print3dmat(massFluxN);
 		//cout<<" W partial sovled" <<endl;
@@ -204,21 +298,7 @@ int main(int argc, char *argv[])
 		//cout<<" size of UW "<<UW.size()<<" " <<UW[0].size()<<" "<<UW[0][0].size()<<endl;
 		//cout<<NI<<" " <<NJ<<" "<<NK<<endl;
 
-		cout<< " V "<< endl;
-		for(unsigned int i = 0; i<U.size(); i++)
-		{
-			for(unsigned int j = 0 ; j<U[i].size(); j++)
-			{
-				for(unsigned int k = 0; k< U[i][j].size(); k++)
-				{
-					std::cout << V[i][j][k].value<<" ";
-				}
-				cout<<endl;
-			}
-			cout<<endl;
-			cout<<endl;
-		}
-		
+				
 	
     return 0;
 
