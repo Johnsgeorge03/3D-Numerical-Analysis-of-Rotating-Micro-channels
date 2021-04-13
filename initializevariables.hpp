@@ -1,5 +1,5 @@
-int NX = 30, NY = 30, NZ = 90;
-double lengthX = 0.003, lengthY = 0.003, lengthZ = 0.009;
+int NX = 25, NY = 25, NZ = 150;
+double lengthX = 0.003, lengthY = 0.003, lengthZ = 0.018;
 double beginX = 0.0, beginY = 0.0 , beginZ = 0.001;
 
 Mesh mymesh_ (beginX, beginY, beginZ, NX, NY, NZ, lengthX, lengthY, lengthZ);
@@ -19,10 +19,14 @@ Fields::vec3dField W (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField U_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField V_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 Fields::vec3dField W_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField UC (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK))); // cell centre velocity correction
+Fields::vec3dField VC (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField WC (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+
 
 Fields::vec3dField P (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
-Fields::vec3dField UW (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
-Fields::vec3dField UWC (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+Fields::vec3dField UW (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));  //U wall 
+Fields::vec3dField UWC (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK))); // U wall corrected
 Fields::vec3dField VW (NI, Fields::vec2dField(NJ - 1, Fields::vec1dField(NK)));
 Fields::vec3dField VWC (NI, Fields::vec2dField(NJ - 1, Fields::vec1dField(NK)));
 Fields::vec3dField WW (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK - 1)));
@@ -39,9 +43,10 @@ Fields::vec3dField massFluxNC (NI, Fields::vec2dField(NJ - 1, Fields::vec1dField
 Fields::vec3dField massFluxTC (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK - 1)));
 
 
-fieldOper.getGridInfoPassed(U, mymesh_, sol);
+fieldOper.getGridInfoPassed(U, mymesh_, sol);  // passing some of the values from the mesh class mymesh_
 fieldOper.getGridInfoPassed(V, mymesh_, sol);
 fieldOper.getGridInfoPassed(W, mymesh_, sol);
+
 fieldOper.getGridInfoPassed(P, mymesh_, sol);
 fieldOper.getGridInfoPassed(PC, mymesh_, sol);
 fieldOper.getGridInfoPassed(DPX, mymesh_, sol);
@@ -115,7 +120,8 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
    // fieldOper.boundaryCondition(U,top, 5.0);
    // fieldOper.boundaryCondition(U,bottom, 6.0);
    // fieldOper.print3dmat(U);
-    fieldOper.initializeInternalField(P, 0.2);
+    fieldOper.initializeInternalField(P, 0.0);
+    fieldOper.initializeInternalField(PC, 0.0);
    // fieldOper.copyInternalField(P, PP);
    // fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, north);
    // fieldOper.linearextrapolateCondition(P, mymesh_.FX, mymesh_.FY, mymesh_.FZ, south);
@@ -136,9 +142,12 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
     //finiteObj.print3dmat(AE3);
                               
     //fieldOper.print3dmat(P);
-    
+    double bottomwallvelformassfluxinit = sol.density*0.01*U[1][1][1].St;
 
     // Equations
+
+    // setting some boundary conditions
+
 	fieldOper.boundaryCondition(U, north, 0.0);
 	fieldOper.boundaryCondition(U, south, 0.0);
 	fieldOper.boundaryCondition(U, east, 0.0);
@@ -155,7 +164,7 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
 	fieldOper.boundaryCondition(W, south, 0.0);
 	fieldOper.boundaryCondition(W, east, 0.0);
 	fieldOper.boundaryCondition(W, west, 0.0);
-	fieldOper.boundaryCondition(W, bottom, 0.1);
+	fieldOper.boundaryCondition(W, bottom, 0.01);
 
 
 	fieldOper.boundaryCondition(UW, north, 0.0);
@@ -174,7 +183,7 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
 	fieldOper.boundaryCondition(WW, south, 0.0);
 	fieldOper.boundaryCondition(WW, east, 0.0);
 	fieldOper.boundaryCondition(WW, west, 0.0);
-	fieldOper.boundaryCondition(WW, bottom, 0.1);
+	fieldOper.boundaryCondition(WW, bottom, 0.01);
 
 	fieldOper.boundaryCondition(UWC, north, 0.0);
 	fieldOper.boundaryCondition(UWC, south, 0.0);
@@ -201,6 +210,7 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
 	fieldOper.boundaryCondition(massFluxE, west, 0.0);
 	fieldOper.boundaryCondition(massFluxN, north, 0.0);
 	fieldOper.boundaryCondition(massFluxN, south, 0.0);
+	fieldOper.boundaryCondition(massFluxT, bottom, bottomwallvelformassfluxinit);
 	//fieldOper.print3dmat(U);
 
 

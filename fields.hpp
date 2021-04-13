@@ -33,7 +33,7 @@ public:
     double value;
     int NI, NJ, NK, NIM, NJM, NKM;
     double de, dn, dt; // for massflux and pressure correction
-    double X, XC, Y, YC, Z, ZC, FXE, FXP, FYN, FYP, FZT, FZP, DXPtoE, DYPtoN, DZPtoT;
+    double X, XC, Y, YC, Z, ZC, FXE, FXP, FYN, FYP, FZT, FZP, DXPtoE, DYPtoN, DZPtoT; // from the mesh
     double Se, Sn, St, visc, density, volume; // Se- face area east
     
     void getGridInfoPassed(Fields::vec3dField&, Mesh&, Solution&);
@@ -45,7 +45,8 @@ public:
     void print3dmat(const Fields::vec3dField&);
     //boundary conditions which modifieds the values of fields
     void boundaryCondition(Fields::vec3dField&, string&, double);
-    void linearextrapolateCondition(Fields::vec3dField&, vector<double>&, vector<double>&, vector<double>&, string&);
+    void linearextrapolateCondition(Fields::vec3dField&, vector<double>&, vector<double>&, 
+    					vector<double>&, string&);
     void copyOutletVelocity(Fields::vec3dField&);
 
     //Fields::vec3dField& operator=(const Fields::vec3dField&); 

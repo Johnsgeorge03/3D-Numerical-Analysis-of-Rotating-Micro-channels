@@ -11,7 +11,7 @@ public:
     double visc;
     double density;
     double omega;
-    int nsteps,maxit;
+    int nsteps, maxit;
     int Imonitor, Jmonitor, Kmonitor;
     double URFUVel, URFVVel, URFWVel, URFPressure; // under-relaxation factor for U,V,W,P
     double URFU, URFV, URFW, URFP; // reciprocal of the above solvers
@@ -25,3 +25,4 @@ public:
 // maxit - maximum iterations
 // URFUVel - under-relaxation factor for u  velocity
 // URFU - reciprocal of URFUVel
+// ignore all relaxation factors

@@ -56,10 +56,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = vec[i][j].size() - 2; k < vec[i][j].size() - 1; k++)
 			{
-				double Ft		= massFluxTop[i][j][k].value;
-				double Dt		= (2*vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
 
-				APTemp[i][j][k].at	= -Ft + Dt;
+				APTemp[i][j][k].at	= 0.0;
 				
 			}
 		}
@@ -75,10 +73,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < 2; k++)
 			{
-				double Fb		=  massFluxTop[i][j][k-1].value;
-				double Db		=  (2*vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
-
-				APTemp[i][j][k].ab 	= Fb + Db;
+				double Ft		=  massFluxTop[i][j][k].value;
+				double Dt		=  (vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
+				
+				APTemp[i][j][k].at	= (-Ft/2.0 + 4.0*Dt/3.0);
+				APTemp[i][j][k].ab 	= 0.0;
 
 			}
 		}
@@ -94,10 +93,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fn 		= massFluxNorth[i][j][k].value;
-				double Dn 		= (2*vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
-	
-				APTemp[i][j][k].an      =  max(max(-Fn , (Dn - Fn/2.0)), 0.0);
+				double Fs 		= massFluxNorth[i][j-1][k].value;
+				double Ds 		= (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j-1][k].DYPtoN;
+				
+				APTemp[i][j][k].as	= (Fs/2.0 + 4.0*Ds/3.0);
+				APTemp[i][j][k].an      =  0.0;
 
 			}
 		}
@@ -112,10 +112,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fs 		= massFluxNorth[i][j-1][k].value;
-				double Ds 		= (2*vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
+				double Fn 		= massFluxNorth[i][j][k].value;
+				double Dn 		= (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
 			
-				APTemp[i][j][k].as   	=  max(max( Fs , (Ds + Fs/2.0)), 0.0);
+				APTemp[i][j][k].an	= (-Fn/2.0 + 4.0*Dn/3.0);
+				APTemp[i][j][k].as   	= 0.0;
 
 			}
 		}
@@ -128,10 +129,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fe 		= massFluxEast[i][j][k].value;
-				double De 		= (2*vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
+				double Fw 		= massFluxEast[i-1][j][k].value;
+				double Dw 		= (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i-1][j][k].DXPtoE;
 
-				APTemp[i][j][k].ae    	=  max(max(-Fe , (De - Fe/2.0)), 0.0);
+				APTemp[i][j][k].aw	= (Fw/2.0 + 4.0*Dw/3.0);
+				APTemp[i][j][k].ae    	= 0.0;
 
 			}
 		}
@@ -145,10 +147,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fw 		= massFluxEast[i-1][j][k].value;
-				double Dw 		= (2*vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
+				double Fe 		= massFluxEast[i][j][k].value;
+				double De 		= (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
 
-				APTemp[i][j][k].aw     	=  max(max(Fw , (Dw + Fw/2.0)), 0.0);
+				APTemp[i][j][k].aw     	= 0.0; 
+				APTemp[i][j][k].ae	= (-Fe/2.0 + 4.0*De/3.0);
 
 			}
 		}
@@ -158,8 +161,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 
 } // end convection- diffusive term
 
-
-FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, int& direction_) // receives the pressure field
+// velocity source at the 
+FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, Fields::vec3dField& Ucell, Fields::vec3dField& Vcell, Fields::vec3dField& Wcell, Fields::vec3dField& massFluxTop, int& direction_) // receives the pressure field
 {
 	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
 	
@@ -183,24 +186,38 @@ FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, int& direction_) /
 		double pressureTopFace    = (vec[i][j][k+1].value*vec[i][j][k].FZT) + (vec[i][j][k].value*(1.0-vec[i][j][k].FZT));
         	double pressureBottomFace = (vec[i][j][k].value*vec[i][j][k-1].FZT) + (vec[i][j][k-1].value*(1.0-vec[i][j][k-1].FZT));
 
-        	double pressureEastGrad  = (pressureEastFace-pressureWestFace);
-       		double pressureNorthGrad = (pressureNorthFace-pressureSouthFace);
-		double pressureTopGrad   = (pressureTopFace - pressureBottomFace);
+        	double pressureEastGrad  = (pressureEastFace - pressureWestFace);
+       		double pressureNorthGrad = (pressureNorthFace- pressureSouthFace);
+		double pressureTopGrad   = (pressureTopFace  - pressureBottomFace);
 
         	if(direction_ == 1)  //for east direction
         	{
             		APTemp[i][j][k].sp = -pressureEastGrad*vec[i][j][k].Se;
+			forBottomBoundary(APTemp)
+			{
+				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Ucell[i][j][k+1].visc*Ucell[i][j][k+1].St/(3.0*Ucell[i][j][k+1].DZPtoT))*Ucell[i][j][k].value;
+			}
 
        		}
 		
         	else if(direction_ == 2) //for north direction
         	{
             		APTemp[i][j][k].sp = -pressureNorthGrad*vec[i][j][k].Sn;
+			forBottomBoundary(APTemp)
+			{
+				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Vcell[i][j][k+1].visc*Vcell[i][j][k+1].St/(3.0*Vcell[i][j][k+1].DZPtoT))*Vcell[i][j][k].value;
+			}
+
+
         	}
 
 		else if(direction_ == 3) // for top direction
 		{
 			APTemp[i][j][k].sp = -pressureTopGrad*vec[i][j][k].St;
+			forBottomBoundary(APTemp)
+			{
+				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Wcell[i][j][k+1].visc*Wcell[i][j][k+1].St/(3.0*Wcell[i][j][k+1].DZPtoT))*Wcell[i][j][k].value;
+			}
 		}
 
         }

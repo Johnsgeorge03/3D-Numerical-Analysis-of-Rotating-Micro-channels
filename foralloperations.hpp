@@ -18,6 +18,7 @@ public:
     vector<vector<vector<T> > > temp3dvector;
 
 };
+// defining macros
 
 #define forAll(temp3dvector) \
 for(unsigned int i = 0; i < temp3dvector.size(); i++) \

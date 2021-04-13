@@ -20,7 +20,10 @@ public:
 		
 	void print3dmat(finiteMat&);
 	void print3dsource(finiteMat&);
+	
 
+	//operator overloading
+	
 	friend FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat&, 
 						const FiniteMatrix::finiteMat&);
 	friend FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat&, 

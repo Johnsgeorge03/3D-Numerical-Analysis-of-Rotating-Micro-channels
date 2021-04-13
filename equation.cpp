@@ -57,20 +57,23 @@ RES(Fmatrix.size(),vector<vector<FiniteMatrix>>(Fmatrix[0].size(), vector<Finite
 		APNot[i][j][k].value 	= APInitial[i][j][k].apnot;
 		SP[i][j][k].value 	= APInitial[i][j][k].sp;
 		SF[i][j][k].value 	= APInitial[i][j][k].sf;
-		// let APInitial hold all these values initially, but eventually the values are sepated into different arrays having same link coefficient name
+		// let APInitial hold all these values initially, but eventually the values are sepated 
+		// into different arrays having same link coefficient name
 		
 	}
 	
 }
 
-void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, int& iter)
+void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, 
+				Fields::vec3dField& massFluxTop, Fields::vec3dField& Ucell, Fields::vec3dField& Vcell,
+				Fields::vec3dField& Wcell,int& iter)
 {
 // only for the internal cvs and not the boundary and boundary neighbours
-	for(unsigned int i = 1; i<AP.size() - 1; i++)
+	for(unsigned int i = 2; i<AP.size() - 2; i++)
 	{
-		for(unsigned int j = 1 ; j<AP[i].size() - 1; j++)
+		for(unsigned int j = 2 ; j<AP[i].size() - 2; j++)
 		{
-			for(unsigned int k = 1; k< AP[i][j].size() - 1 ; k++)
+			for(unsigned int k = 2; k< AP[i][j].size() - 2 ; k++)
 			{
 				AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
 				    + AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
@@ -80,12 +83,140 @@ void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dF
 				    + massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value;
 
 				rAP[i][j][k].value = 1.0/AP[i][j][k].value; // reciprocal of AP
-				if(iter > 0)
+				
+
+				// for debugging only ** not calculation****
+				if(iter >= 0)
 				{
-					assert(AP[i][j][k].value > (AE[i][j][k].value + AW[i][j][k].value
-				    				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
-				    				+ AT[i][j][k].value));
+					APU[i][j][k].value = (AP[i][j][k].value - (AE[i][j][k].value + AW[i][j][k].value 
+								+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value
+								+ AT[i][j][k].value));
  				}
+			}
+		}
+	}
+	//west
+
+	for(unsigned int i = 1; i<2;i++)
+	{
+		for(unsigned int j = 1; j<AP[0].size() - 1; j++)
+		{
+			for(unsigned int k = 1; k<AP[0][0].size() - 1; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+				+ massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value
+				+ 8.0*Ucell[i][j][k].visc*Ucell[i][j][k].Se/(3.0*Ucell[i][j][k].DXPtoE);
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+			}
+		}
+	}
+
+	// east
+	for(unsigned int i = AP.size() - 2; i < AP.size() -1; i++)
+	{
+		for(unsigned int j = 1; j<AP[0].size() - 1; j++)
+		{
+			for(unsigned int k = 1; k<AP[0][0].size() - 1; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+				+ massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value
+				+ 8.0*Ucell[i][j][k].visc*Ucell[i][j][k].Se/(3.0*Ucell[i-1][j][k].DXPtoE);
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+
+			}
+		}
+	}
+
+
+	// south
+
+	for(unsigned int i = 1; i < AP.size() - 1; i++)
+	{
+		for(unsigned int j = 1; j<2; j++)
+		{
+			for( unsigned int k = 1; k< AP[0][0].size() - 1; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+				+ massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value
+				+ 8.0*Vcell[i][j][k].visc*Vcell[i][j][k].Sn/(3.0*Vcell[i][j][k].DYPtoN);
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+			}
+		}	
+	}
+
+	//north
+
+	for(unsigned int i = 1; i < AP.size() -1 ; i++)
+	{
+		for(unsigned int j = AP[0].size() - 2; j < AP[0].size() - 1; j++)
+		{
+			for(unsigned int k = 1; k < AP[0][0].size() - 1; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+				+ massFluxTop[i][j][k].value - massFluxTop[i][j][k-1].value
+				+ 8.0*Vcell[i][j][k].visc*Vcell[i][j][k].Sn/(3.0*Vcell[i-1][j][k].DYPtoN);
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+			}
+		}
+	}
+
+	//bottom
+	for(unsigned int  i = 1; i < AP.size() - 1; i++)
+	{
+		for(unsigned int j = 1; j<AP[0].size() - 1; j++)
+		{
+			for(unsigned int k = 1 ;k<2; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+				+ massFluxTop[i][j][k].value
+				+ 8.0*Vcell[i][j][k].visc*Vcell[i][j][k].Sn/(3.0*Vcell[i-1][j][k].DYPtoN);
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+			}
+		}
+	}
+
+	//top
+	for(unsigned int i = 1; i<AP.size() - 1; i++)
+	{
+		for(unsigned int j = 1; j<AP[0].size() - 1; j++)
+		{
+			for(unsigned int k = AP[0][0].size() - 2; k < AP[0][0].size() - 1; k++)
+			{
+			AP[i][j][k].value = APNot[i][j][k].value + AE[i][j][k].value + AW[i][j][k].value
+				+ AS[i][j][k].value + AN[i][j][k].value + AB[i][j][k].value 
+				+ AT[i][j][k].value
+				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
+				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
+			- massFluxTop[i][j][k-1].value + Wcell[i][j][k].density*Wcell[i][j][k].St*Wcell[i][j][k].value; // no flux fromoutlet
+				
+
+			rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+		
 			}
 		}
 	}
@@ -114,7 +245,7 @@ void Equation::assemblePressureEquation()
 }
 
 
-
+//Gauss-Siedel Solver
 
 Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int& iterations)
 {
@@ -151,6 +282,9 @@ Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int
 	return phitemp;
 }
 
+
+
+
 // pass pressure
 Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int& iterations)
 {
@@ -184,7 +318,11 @@ Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int
 }
 
 
-Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fields::vec3dField& pressure, int& direction)
+
+
+
+Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fields::vec3dField& pressure, 
+							int& direction)
 {
 		
 	if(direction == 1) // U vel interpolation
@@ -292,10 +430,11 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 
 
 
+//For the calculation of massFlux
 
 
-
-Fields::vec3dField Equation::massFluxCalculation(Fields::vec3dField& wallvel, Fields::vec3dField& nodevel, int& direction)
+Fields::vec3dField Equation::massFluxCalculation(Fields::vec3dField& wallvel, 
+						Fields::vec3dField& nodevel, int& direction)
 {
 	
 	
@@ -371,14 +510,14 @@ Fields::vec3dField Equation::massFluxCalculation(Fields::vec3dField& wallvel, Fi
 
 
 
+// For velocity correction
 
 
 
-
-Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWall, 
+Fields::vec3dField Equation::faceVelocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWall, 
 						Fields::vec3dField& VWall, Fields::vec3dField& WWall, int& direction)
 {
-	if(direction == 1) // U vel correction
+	if(direction == 1) // Uwall vel correction
 	{
 		Fields::vec3dField wallvel (NI - 1, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 
@@ -390,7 +529,7 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& PCorr, Field
 		return wallvel;
 	}
 
-	else if (direction == 2) // V vel correction
+	else if (direction == 2) // Vwall vel correction
 	{
 		Fields::vec3dField wallvel (NI, Fields::vec2dField(NJ - 1, Fields::vec1dField(NK)));
 
@@ -406,7 +545,7 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& PCorr, Field
 
 	}
 
-	else if (direction == 3) // W vel correction
+	else if (direction == 3) // Wwall vel correction
 	{
 		Fields::vec3dField wallvel (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK - 1)));
 
@@ -431,12 +570,13 @@ Fields::vec3dField Equation::velocityCorrection(Fields::vec3dField& PCorr, Field
 
 
 
+// For the correction of massflux
 
 
 
 
-
-Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWCorr, Fields::vec3dField& VWCorr, Fields::vec3dField& WWCorr, int& direction)
+Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWCorr, 
+						Fields::vec3dField& VWCorr, Fields::vec3dField& WWCorr, int& direction)
 {
 	if(direction == 1) // east direction mass flux correction
 	{
@@ -484,6 +624,56 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Field
 }
 
 
+Fields::vec3dField Equation::cellVelocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& Ucentre, 
+						Fields::vec3dField& Vcentre, Fields::vec3dField& Wcentre, int& direction)
+{
+	if(direction == 1) // U vel correction
+	{
+		Fields::vec3dField Ucell (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+
+		forAllInternal(Ucell)
+		{
+			Ucell[i][j][k].value = rAP[i][j][k].value*Ucentre[i][j][k].Se
+						*(PCorr[i-1][j][k].value - PCorr[i+1][j][k].value);
+		}
+
+		return Ucell;
+	}
+
+	else if (direction == 2) // V vel correction
+	{
+		Fields::vec3dField Vcell (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+
+
+		forAllInternal(Vcell)
+		{
+			Vcell[i][j][k].value = rAP[i][j][k].value*Vcentre[i][j][k].Sn
+						*(PCorr[i][j-1][k].value - PCorr[i][j+1][k].value);
+
+		}
+
+		return Vcell;
+
+
+	}
+
+	else if (direction == 3) // W vel correction
+	{
+		Fields::vec3dField Wcell (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
+
+
+		forAllInternal(Wcell)
+		{
+
+			Wcell[i][j][k].value = rAP[i][j][k].value*Wcentre[i][j][k].St
+						*(PCorr[i][j][k-1].value - PCorr[i][j][k+1].value);
+	
+		}
+
+		return Wcell;
+	}
+
+}
 
 
 

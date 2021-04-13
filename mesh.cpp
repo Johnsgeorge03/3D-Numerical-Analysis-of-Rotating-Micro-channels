@@ -9,7 +9,8 @@
 //beginX  -  the starting coordinate of the microchannel
 //NI      -  the total no of nodes including boundary
 //initializing constructor
-Mesh::Mesh(double& beginX_, double& beginY_, double& beginZ_, int& NX_, int& NY_, int& NZ_, double& lengthX_, double& lengthY_, double& lengthZ_):
+Mesh::Mesh(double& beginX_, double& beginY_, double& beginZ_, int& NX_, int& NY_, int& NZ_, 
+		double& lengthX_, double& lengthY_, double& lengthZ_):
 
 beginX(beginX_), beginY(beginY_), beginZ(beginZ_),
 NX(NX_), NY(NY_), NZ(NZ_), 

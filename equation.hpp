@@ -21,8 +21,9 @@ public:
 	//void noWallShearXBoundaryCondition(Fields::vec3dField&);
 	//void noWallShearYBoundaryCondition(Fields::vec3dField&);
 	//void noWallShearZBoundaryCondition(Fields::vec3dField&);
-	void assembleEquation(Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&
-				,int&);
+	void assembleEquation(Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&,
+			Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&,int&);
+
 	void assemblePressureEquation();
 
 	Fields::vec3dField solveVelocity(Fields::vec3dField&, unsigned int& );
@@ -31,11 +32,12 @@ public:
 	Fields::vec3dField momentumInterpolation(Fields::vec3dField&, Fields::vec3dField&, int&);
 	Fields::vec3dField massFluxCalculation(Fields::vec3dField&, Fields::vec3dField&, int&);
 
-	Fields::vec3dField velocityCorrection(Fields::vec3dField&, Fields::vec3dField&, 
+	Fields::vec3dField faceVelocityCorrection(Fields::vec3dField&, Fields::vec3dField&, 
 			Fields::vec3dField&, Fields::vec3dField&, int&);
 	Fields::vec3dField massFluxCorrection(Fields::vec3dField&, Fields::vec3dField&,
 			Fields::vec3dField&, Fields::vec3dField&, int&);
-	
+	Fields::vec3dField cellVelocityCorrection(Fields::vec3dField&, Fields::vec3dField&,
+			Fields::vec3dField&, Fields::vec3dField&, int&);
 	double value;
 	double Residual;
 	double RSM; // root-square name
@@ -54,7 +56,7 @@ public:
         FiniteMatrix::finiteMat AN;
         FiniteMatrix::finiteMat AB;
         FiniteMatrix::finiteMat AT;
-        FiniteMatrix::finiteMat rAP;
+        FiniteMatrix::finiteMat rAP;  //reciprocal of AP
         FiniteMatrix::finiteMat APU;
 	FiniteMatrix::finiteMat SP;
 	FiniteMatrix::finiteMat SF;
