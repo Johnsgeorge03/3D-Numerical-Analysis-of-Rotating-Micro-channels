@@ -6,13 +6,16 @@
 
 namespace fvm
 {
-//momentum equation 
-//diffusion, convection, pressure source, time derivative, other sources
+//-----------------------------------------MOMENTUM EQUATION------------------------------------------------//
 
-FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
+//-------------------------------------CONVECTION-DIFFUSION TERM--------------------------------------------//
+
+FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, 
+Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
 {
 	// recieves the massfluxes and velocity field ( only for distance, viscosity and surface area)
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+							vector<FiniteMatrix>(vec[0][0].size())));
 	
 	//towards east side
 	forAllInternalUCVs(vec)
@@ -20,8 +23,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Fe = massFluxEast[i][j][k].value;
 		double De = (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
 
-		APTemp[i][j][k].ae     =  (De - Fe/2.0);//max(max(-Fe , (De - Fe/2.0)), 0.0);
-		APTemp[i+1][j][k].aw   =  (De + Fe/2.0);//max(max( Fe , (De + Fe/2.0)), 0.0);
+		APTemp[i][j][k].ae     = max(max(-Fe , (De - Fe/2.0)), 0.0);
+		APTemp[i+1][j][k].aw   = max(max( Fe , (De + Fe/2.0)), 0.0);
 	}
 
 
@@ -31,8 +34,8 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Fn = massFluxNorth[i][j][k].value;
 		double Dn = (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
 	
-		APTemp[i][j][k].an     =  (Dn - Fn/2.0);//max(max(-Fn , (Dn - Fn/2.0)), 0.0);
-		APTemp[i][j+1][k].as   =  (Dn + Fn/2.0);//max(max( Fn , (Dn + Fn/2.0)), 0.0);
+		APTemp[i][j][k].an     =  max(max(-Fn , (Dn - Fn/2.0)), 0.0);
+		APTemp[i][j+1][k].as   =  max(max( Fn , (Dn + Fn/2.0)), 0.0);
 
 	
 	}
@@ -43,12 +46,12 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		double Ft = massFluxTop[i][j][k].value;
 		double Dt = (vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
 
-		APTemp[i][j][k].at     = (Dt - Ft/2.0); //max(max(-Ft , (Dt - Ft/2.0)), 0.0);
-		APTemp[i][j][k+1].ab   = (Dt + Ft/2.0); //max(max( Ft , (Dt + Ft/2.0)), 0.0);
+		APTemp[i][j][k].at = max(max(-Ft , (Dt - Ft/2.0)), 0.0);
+		APTemp[i][j][k+1].ab = max(max( Ft , (Dt + Ft/2.0)), 0.0);
 	
 	}
 
-	//for outlet boundary (top)
+	//for cell near outlet boundary (top)
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -57,7 +60,7 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 			for(unsigned int  k = vec[i][j].size() - 2; k < vec[i][j].size() - 1; k++)
 			{
 
-				APTemp[i][j][k].at	= 0.0;
+				APTemp[i][j][k].at = 0.0;
 				
 			}
 		}
@@ -65,7 +68,7 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 	}
 
 	
-	//for inlet boundary (bottom)
+	//for cell near inlet boundary (bottom)
 	
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -73,11 +76,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < 2; k++)
 			{
-				double Ft		=  massFluxTop[i][j][k].value;
-				double Dt		=  (vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
+				double Ft =  massFluxTop[i][j][k].value;
+				double Dt =  (vec[i][j][k].visc*vec[i][j][k].St)/vec[i][j][k].DZPtoT;
 				
-				APTemp[i][j][k].at	= (-Ft/2.0 + 4.0*Dt/3.0);
-				APTemp[i][j][k].ab 	= 0.0;
+				APTemp[i][j][k].at = max(max(-Ft, (-Ft/2.0 + 4.0*Dt/3.0)), 0.0);
+				APTemp[i][j][k].ab = 0.0;
 
 			}
 		}
@@ -85,7 +88,7 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 	}
 
 
-	//wall north
+	//cell near wall north
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -93,18 +96,18 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fs 		= massFluxNorth[i][j-1][k].value;
-				double Ds 		= (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j-1][k].DYPtoN;
+				double Fs = massFluxNorth[i][j-1][k].value;
+				double Ds = (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j-1][k].DYPtoN;
 				
-				APTemp[i][j][k].as	= (Fs/2.0 + 4.0*Ds/3.0);
-				APTemp[i][j][k].an      =  0.0;
+				APTemp[i][j][k].as = max(max(Fs, Fs/2.0 + 4.0*Ds/3.0), 0.0);
+				APTemp[i][j][k].an =  0.0;
 
 			}
 		}
 
 	}
 
-	//Wall south
+	// cell near Wall south
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -112,16 +115,16 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fn 		= massFluxNorth[i][j][k].value;
-				double Dn 		= (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
+				double Fn = massFluxNorth[i][j][k].value;
+				double Dn = (vec[i][j][k].visc*vec[i][j][k].Sn)/vec[i][j][k].DYPtoN;
 			
-				APTemp[i][j][k].an	= (-Fn/2.0 + 4.0*Dn/3.0);
-				APTemp[i][j][k].as   	= 0.0;
+				APTemp[i][j][k].an = max(max(-Fn, -Fn/2.0 + 4.0*Dn/3.0), 0.0);
+				APTemp[i][j][k].as = 0.0;
 
 			}
 		}
 	}
-	//Wall east
+	//cell near Wall east
 
 	for(unsigned int i = vec.size() - 2; i<vec.size() - 1; i++)
 	{
@@ -129,17 +132,17 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fw 		= massFluxEast[i-1][j][k].value;
-				double Dw 		= (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i-1][j][k].DXPtoE;
+				double Fw = massFluxEast[i-1][j][k].value;
+				double Dw = (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i-1][j][k].DXPtoE;
 
-				APTemp[i][j][k].aw	= (Fw/2.0 + 4.0*Dw/3.0);
-				APTemp[i][j][k].ae    	= 0.0;
+				APTemp[i][j][k].aw = max(max(Fw, (Fw/2.0 + 4.0*Dw/3.0)), 0.0);
+				APTemp[i][j][k].ae = 0.0;
 
 			}
 		}
 	}
 
-	//Wall west
+	//cell near Wall west
 
 	for(unsigned int i = 1; i < 2; i++)
 	{
@@ -147,11 +150,11 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 		{
 			for(unsigned int  k = 1; k < vec[i][j].size() - 1; k++)
 			{
-				double Fe 		= massFluxEast[i][j][k].value;
-				double De 		= (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
+				double Fe = massFluxEast[i][j][k].value;
+				double De = (vec[i][j][k].visc*vec[i][j][k].Se)/vec[i][j][k].DXPtoE;
 
-				APTemp[i][j][k].aw     	= 0.0; 
-				APTemp[i][j][k].ae	= (-Fe/2.0 + 4.0*De/3.0);
+				APTemp[i][j][k].aw = 0.0; 
+				APTemp[i][j][k].ae = max(max(-Fe, (-Fe/2.0 + 4.0*De/3.0)), 0.0);
 
 			}
 		}
@@ -159,32 +162,40 @@ FiniteMatrix::finiteMat convDiffusiveTerm(Fields::vec3dField& vec, Fields::vec3d
 	}
 	return APTemp;
 
-} // end convection- diffusive term
+}
+//----------------------------------END CONVECTION-DIFFUSION TERM---------------------------------------------//
 
-// velocity source at the 
-FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, Fields::vec3dField& Ucell, Fields::vec3dField& Vcell, Fields::vec3dField& Wcell, Fields::vec3dField& massFluxTop, int& direction_) // receives the pressure field
+
+
+
+
+//--------------------------------PRESSURE SOURCE AND BOUNDARY SOURCES----------------------------------------//
+
+FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, Fields::vec3dField& Ucell, 
+Fields::vec3dField& Vcell, Fields::vec3dField& Wcell, Fields::vec3dField& massFluxTop, int& direction_) 
+// receives the pressure field
 {
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
-	
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+						vector<FiniteMatrix>(vec[0][0].size())));
 	
 	forAllInternal(vec)
 	{
 				
-		//double DX = vec[i][j][k].X - vec[i-1][j][k].X;
-		//double DY = vec[i][j][k].Y - vec[i][j-1][k].Y;
-		//double DZ = vec[i][j][k].Z - vec[i][j][k-1].Z;
-
-		
-
-        	double pressureEastFace = (vec[i+1][j][k].value*vec[i][j][k].FXE) + (vec[i][j][k].value* (1.0-vec[i][j][k].FXE));
-        	double pressureWestFace = (vec[i][j][k].value*vec[i-1][j][k].FXE) + (vec[i-1][j][k].value*(1.0-vec[i-1][j][k].FXE));
+        	double pressureEastFace = (vec[i+1][j][k].value*vec[i][j][k].FXE) 
+					+ (vec[i][j][k].value* (1.0-vec[i][j][k].FXE));
+        	double pressureWestFace = (vec[i][j][k].value*vec[i-1][j][k].FXE) 
+					+ (vec[i-1][j][k].value*(1.0-vec[i-1][j][k].FXE));
 
 
-        	double pressureNorthFace = (vec[i][j+1][k].value*vec[i][j][k].FYN) + (vec[i][j][k].value*(1.0-vec[i][j][k].FYN));
-        	double pressureSouthFace = (vec[i][j][k].value*vec[i][j-1][k].FYN) + (vec[i][j-1][k].value*(1.0-vec[i][j-1][k].FYN));
+        	double pressureNorthFace = (vec[i][j+1][k].value*vec[i][j][k].FYN) 
+					+ (vec[i][j][k].value*(1.0-vec[i][j][k].FYN));
+        	double pressureSouthFace = (vec[i][j][k].value*vec[i][j-1][k].FYN) 
+					+ (vec[i][j-1][k].value*(1.0-vec[i][j-1][k].FYN));
 
-		double pressureTopFace    = (vec[i][j][k+1].value*vec[i][j][k].FZT) + (vec[i][j][k].value*(1.0-vec[i][j][k].FZT));
-        	double pressureBottomFace = (vec[i][j][k].value*vec[i][j][k-1].FZT) + (vec[i][j][k-1].value*(1.0-vec[i][j][k-1].FZT));
+		double pressureTopFace    = (vec[i][j][k+1].value*vec[i][j][k].FZT)
+					+ (vec[i][j][k].value*(1.0-vec[i][j][k].FZT));
+        	double pressureBottomFace = (vec[i][j][k].value*vec[i][j][k-1].FZT) 
+					+ (vec[i][j][k-1].value*(1.0-vec[i][j][k-1].FZT));
 
         	double pressureEastGrad  = (pressureEastFace - pressureWestFace);
        		double pressureNorthGrad = (pressureNorthFace- pressureSouthFace);
@@ -193,51 +204,82 @@ FiniteMatrix::finiteMat pressureGrad(Fields::vec3dField& vec, Fields::vec3dField
         	if(direction_ == 1)  //for east direction
         	{
             		APTemp[i][j][k].sp = -pressureEastGrad*vec[i][j][k].Se;
-			forBottomBoundary(APTemp)
-			{
-				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Ucell[i][j][k+1].visc*Ucell[i][j][k+1].St/(3.0*Ucell[i][j][k+1].DZPtoT))*Ucell[i][j][k].value;
-			}
 
-       		}
+	       	}
 		
         	else if(direction_ == 2) //for north direction
         	{
             		APTemp[i][j][k].sp = -pressureNorthGrad*vec[i][j][k].Sn;
-			forBottomBoundary(APTemp)
-			{
-				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Vcell[i][j][k+1].visc*Vcell[i][j][k+1].St/(3.0*Vcell[i][j][k+1].DZPtoT))*Vcell[i][j][k].value;
-			}
-
-
+		
         	}
 
 		else if(direction_ == 3) // for top direction
 		{
 			APTemp[i][j][k].sp = -pressureTopGrad*vec[i][j][k].St;
-			forBottomBoundary(APTemp)
-			{
-				APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 8.0*Wcell[i][j][k+1].visc*Wcell[i][j][k+1].St/(3.0*Wcell[i][j][k+1].DZPtoT))*Wcell[i][j][k].value;
-			}
+			
+		}
+
+	}
+
+        if(direction_ == 1)  //for east direction
+        {     
+		forBottomBoundary(APTemp)
+		{
+			APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 
+						8.0*Ucell[i][j][k+1].visc*Ucell[i][j][k+1].St
+						/(3.0*Ucell[i][j][k+1].DZPtoT))*Ucell[i][j][k].value;
+				// source terms due to known inlet velocity
+		}
+
+       	}
+		
+        else if(direction_ == 2) //for north direction
+        {
+		forBottomBoundary(APTemp)
+		{
+			APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 
+						8.0*Vcell[i][j][k+1].visc*Vcell[i][j][k+1].St
+						/(3.0*Vcell[i][j][k+1].DZPtoT))*Vcell[i][j][k].value;
 		}
 
         }
-		
+
+	else if(direction_ == 3) // for top direction
+	{
+	
+		forBottomBoundary(APTemp)
+		{
+			APTemp[i][j][k+1].sp += (massFluxTop[i][j][k].value + 
+						8.0*Wcell[i][j][k+1].visc*Wcell[i][j][k+1].St
+						/(3.0*Wcell[i][j][k+1].DZPtoT))*Wcell[i][j][k].value;
+		}
+	}
+
 	return APTemp;
-} // end pressureGrad
+}
+
+//--------------------------------END PRESSURE SOURCE AND BOUNDARY SOURCES-------------------------------//
 
 
 
-FiniteMatrix::finiteMat forceSource(Fields::vec3dField& vec, Solution& sol_, int& direction_) // receives the velocity fields to calculate the coriolis force and centrifugal force
+
+//--------------------------------------------FORCE SOURCE-----------------------------------------------//
+
+// receives the velocity fields to calculate the coriolis force and centrifugal force
+
+FiniteMatrix::finiteMat forceSource(Fields::vec3dField& vec, Solution& sol_, int& direction_) 
 {
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+							vector<FiniteMatrix>(vec[0][0].size())));
 	
 	
 	forAllInternal(vec)
 	{
 		if(direction_ == 1)  //for east direction (pass W velocity field )
         	{
-            		APTemp[i][j][k].sf = -2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume  
-					     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].Se*(vec[i][j][k].X*vec[i][j][k].X - vec[i-1][j][k].X*vec[i-1][j][k].X)/2;
+            		APTemp[i][j][k].sf = -2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume
+					      + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].Se
+					      *(vec[i][j][k].X*vec[i][j][k].X - vec[i-1][j][k].X*vec[i-1][j][k].X)/2;
 
        		}
 		
@@ -248,22 +290,28 @@ FiniteMatrix::finiteMat forceSource(Fields::vec3dField& vec, Solution& sol_, int
 
 		else if(direction_ == 3) // for top direction (pass U velocity field)
 		{
-			APTemp[i][j][k].sf = 2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume  
-					     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].St*(vec[i][j][k].Z*vec[i][j][k].Z - vec[i][j][k-1].Z*vec[i][j][k-1].Z)/2;
+			APTemp[i][j][k].sf = 2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume
+					     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].St
+					     *(vec[i][j][k].Z*vec[i][j][k].Z - vec[i][j][k-1].Z*vec[i][j][k-1].Z)/2;
 		}
 
 		
         }
 		
 	return APTemp;
-} // end forceSource
+}
+
+//--------------------------------------------END FORCE SOURCE----------------------------------------------//
 
 
-//  for time coeff 
 
-FiniteMatrix::finiteMat timeCoeff(Fields::vec3dField& vec, Solution& sol_) // receives the velocity fields to calculate the coriolis force and centrifugal force
+
+//---------------------------------------------TIME COEFFICIENT---------------------------------------------//
+
+FiniteMatrix::finiteMat timeCoeff(Fields::vec3dField& vec, Solution& sol_) 
 {
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+							vector<FiniteMatrix>(vec[0][0].size())));
 	
 	
 	forAllInternal(vec)
@@ -273,35 +321,56 @@ FiniteMatrix::finiteMat timeCoeff(Fields::vec3dField& vec, Solution& sol_) // re
         }
 		
 	return APTemp;
-} // end timeCoeff
+}
+
+//---------------------------------------END TIME COEFFICIENT----------------------------------------------//
 
 
 
-// for pressure correction **************its not massflux wall velocity****************
-FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
+
+
+//-----------------------------------PRESSURE CORRECTION EQN COEFFICIENT-----------------------------------//
+// vec is pressure
+
+FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, 
+Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix::finiteMat& AP)
 {
 	// recieves the massfluxes and velocity field ( only for distance, viscosity and surface area)
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+						vector<FiniteMatrix>(vec[0][0].size())));
 
 	forAllInternalUCVs(vec)
 	{
-		APTemp[i][j][k].ae = vec[i][j][k].density*vec[i][j][k].Se*massFluxEast[i][j][k].de;
-		APTemp[i+1][j][k].aw = vec[i+1][j][k].density*vec[i+1][j][k].Se*massFluxEast[i][j][k].de;
+		double f = vec[i][j][k].FXE;
+		double AP_ = AP[i+1][j][k].value*AP[i][j][k].value
+				/(f*AP[i][j][k].value + (1-f)*AP[i+1][j][k].value);
+	
+		APTemp[i][j][k].ae = vec[i][j][k].density*vec[i][j][k].Se*vec[i][j][k].Se/AP_;
+		APTemp[i+1][j][k].aw = vec[i+1][j][k].density*vec[i+1][j][k].Se*vec[i+1][j][k].Se/AP_;
 	}
 
 	forAllInternalVCVs(vec)
 	{
-		APTemp[i][j][k].an = vec[i][j][k].density*vec[i][j][k].Sn*massFluxNorth[i][j][k].dn;
-		APTemp[i][j+1][k].as = vec[i][j+1][k].density*vec[i][j+1][k].Sn*massFluxNorth[i][j][k].dn;
+		double f = vec[i][j][k].FYN;
+		double AP_ = AP[i][j+1][k].value*AP[i][j][k].value
+				/(f*AP[i][j][k].value + (1-f)*AP[i][j+1][k].value);
+
+		APTemp[i][j][k].an = vec[i][j][k].density*vec[i][j][k].Sn*vec[i][j][k].Sn/AP_;
+		APTemp[i][j+1][k].as = vec[i][j+1][k].density*vec[i][j+1][k].Sn*vec[i][j+1][k].Sn/AP_;
 	}
 
 	forAllInternalWCVs(vec)
 	{
-		APTemp[i][j][k].at = vec[i][j][k].density*vec[i][j][k].St*massFluxTop[i][j][k].dt;
-		APTemp[i][j][k+1].ab = vec[i][j][k+1].density*vec[i][j][k+1].St*massFluxTop[i][j][k].dt;
+
+		double f = vec[i][j][k].FZT;
+		double AP_ = AP[i][j][k+1].value*AP[i][j][k].value
+				/(f*AP[i][j][k].value + (1-f)*AP[i][j][k+1].value);
+
+		APTemp[i][j][k].at = vec[i][j][k].density*vec[i][j][k].St*vec[i][j][k].St/AP_;
+		APTemp[i][j][k+1].ab = vec[i][j][k+1].density*vec[i][j][k+1].St*vec[i][j][k+1].St/AP_;
 	}
 
-	//for outlet boundary (top)
+	//for cell near outlet boundary (top)
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -310,7 +379,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 			for(unsigned int  k = vec[i][j].size() - 2; k < vec[i][j].size() - 1; k++)
 			{
 
-				APTemp[i][j][k].at	= vec[i][j][k].density*vec[i][j][k].St*massFluxTop[i][j][k].dt;
+				APTemp[i][j][k].at = vec[i][j][k].density*vec[i][j][k].St*massFluxTop[i][j][k].dt;
 				
 			}
 		}
@@ -318,7 +387,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 	}
 
 	
-	//for inlet boundary (bottom)
+	//for cell near inlet boundary (bottom)
 	
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -335,7 +404,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 	}
 
 
-	//wall north
+	//for cell near wall north
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -351,7 +420,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 
 	}
 
-	//Wall south
+	//for cell near Wall south
 
 	for(unsigned int i = 1; i<vec.size()-1; i++)
 	{
@@ -365,7 +434,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 			}
 		}
 	}
-	//Wall east
+	//for cell near Wall east
 
 	for(unsigned int i = vec.size() - 2; i<vec.size() - 1; i++)
 	{
@@ -379,7 +448,7 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 		}
 	}
 
-	//Wall west
+	//for cell near Wall west
 
 	for(unsigned int i = 1; i < 2; i++)
 	{
@@ -397,24 +466,38 @@ FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields:
 	
 	return APTemp;
 
-} // end pressure correction
+} 
+//----------------------------------END OF PRESSURE CORRECTION COEFFICIENT------------------------------------//
 
 
-FiniteMatrix::finiteMat pressureCorrectionSource(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
+
+
+//---------------------------------------------MASS IMBALANCE-------------------------------------------------//
+
+FiniteMatrix::finiteMat pressureCorrectionSource(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, 
+			Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop)
 {
-	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), vector<FiniteMatrix>(vec[0][0].size())));
-	
+	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
+							vector<FiniteMatrix>(vec[0][0].size())));
+	//vec - pressure
 	
 	forAllInternal(vec)
 	{
 	
-            	APTemp[i][j][k].sp = -massFluxEast[i][j][k].value + massFluxEast[i-1][j][k].value - massFluxNorth[i][j][k].value + massFluxNorth[i][j-1][k].value - massFluxTop[i][j][k].value + massFluxTop[i][j][k-1].value;
-
+            	APTemp[i][j][k].sp = -massFluxEast[i][j][k].value 
+				+ massFluxEast[i-1][j][k].value 
+				- massFluxNorth[i][j][k].value 
+				+ massFluxNorth[i][j-1][k].value 
+				- massFluxTop[i][j][k].value 
+				+ massFluxTop[i][j][k-1].value;
         }
 		
 	return APTemp;
 
 
 }
+//--------------------------------------END OF MASS IMBALANCE------------------------------------------------//
 
-} // end namespace fvm
+} 
+
+//----------------------------------------END NAMESPACE FVM--------------------------------------------------//
