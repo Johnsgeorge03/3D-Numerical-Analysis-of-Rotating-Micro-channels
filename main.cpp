@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 		Equation *VEqn = new Equation
 		(
 			fvm::convDiffusiveTerm(V, massFluxE, massFluxN, massFluxT)
-			+ fvm::pressureGrad(P, U, V, W, massFluxT, northdir// velocities are not used in this calc
+			+ fvm::pressureGrad(P, U, V, W, massFluxT, northdir)// velocities are not used in this calc
 			+ fvm::forceSource(U, sol, northdir) // U is not used in calc
 			+ fvm::timeCoeff(V, sol)  // V is not used in calc
 		);
