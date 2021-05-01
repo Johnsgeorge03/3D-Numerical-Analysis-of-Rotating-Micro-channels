@@ -25,4 +25,4 @@ public:
 // maxit - maximum iterations
 // URFUVel - under-relaxation factor for u  velocity
 // URFU - reciprocal of URFUVel
-// ignore all relaxation factors
+
