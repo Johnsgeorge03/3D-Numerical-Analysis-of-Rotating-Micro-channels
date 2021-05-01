@@ -25,7 +25,7 @@ main.o: main.cpp fields.hpp foralloperations.hpp initializevariables.hpp initial
 	g++ -std=c++14 -Wall -g -c main.cpp
 
 main: main.o fields.o foralloperations.o solution.o mesh.o finitematrix.o equation.o filewrite.o
-	g++ -std=c++14 -Wall -g -lm -o main main.o fields.o foralloperations.o solution.o mesh.o finitematrix.o equation.o filewrite.o
+	g++ -floop-parallelize-all -ftree-parallelize-loops=8 -std=c++14 -Wall -g -lm -o main main.o fields.o foralloperations.o solution.o mesh.o finitematrix.o equation.o filewrite.o
 
 clean:
 	rm main *.o *.dat
