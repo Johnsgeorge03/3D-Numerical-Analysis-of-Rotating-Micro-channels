@@ -10,7 +10,8 @@ Fields::Fields()
 
 
 Fields::Fields(int& NI_, int& NJ_, int& NK_)
-:value(0.0), NI(NI_), NJ(NJ_), NK(NK_), NIM(NI-1), NJM(NJ-1), NKM(NK-1), de(0.0), dn(0.0), dt(0.0) //initializing some variables
+:value(0.0), NI(NI_), NJ(NJ_), NK(NK_), NIM(NI-1), NJM(NJ-1), NKM(NK-1), de(0.0), dn(0.0), dt(0.0) 
+//initializing some variables
 {
 
 }
@@ -21,7 +22,49 @@ Fields::~Fields()
 {
 }
 
+
 //function to pass the grid and solution info the 3dvector of fields
+void Fields::copyAllField(Fields::vec3dField& from, Fields::vec3dField& to)
+{
+
+	forAll(from)
+	{
+		to[i][j][k].X   	= from[i][j][k].X;
+		to[i][j][k].Y   	= from[i][j][k].Y;
+		to[i][j][k].Z   	= from[i][j][k].Z;
+      	 	to[i][j][k].XC  	= from[i][j][k].XC;
+        	to[i][j][k].YC 		= from[i][j][k].YC;
+        	to[i][j][k].ZC  	= from[i][j][k].ZC;
+        	to[i][j][k].FXE 	= from[i][j][k].FXE;
+        	to[i][j][k].FYN 	= from[i][j][k].FYN;
+        	to[i][j][k].FZT 	= from[i][j][k].FZT;
+        	to[i][j][k].FXP 	= from[i][j][k].FXP;
+        	to[i][j][k].FYP 	= from[i][j][k].FYP;
+        	to[i][j][k].FZP 	= from[i][j][k].FXP;
+        	to[i][j][k].visc 	= from[i][j][k].visc;
+       		to[i][j][k].density 	= from[i][j][k].density;
+		to[i][j][k].value	= from[i][j][k].value;
+		to[i][j][k].de		= from[i][j][k].de;
+		to[i][j][k].dn		= from[i][j][k].dn;
+		to[i][j][k].dt		= from[i][j][k].dt;
+	}
+
+	forAllInternal(from)
+	{
+		to[i][j][k].DXPtoE 	= from[i][j][k].DXPtoE;
+		to[i][j][k].DYPtoN   	= from[i][j][k].DYPtoN;
+		to[i][j][k].DZPtoT	= from[i][j][k].DZPtoT;
+      	 	to[i][j][k].Se  	= from[i][j][k].Se;
+        	to[i][j][k].Sn 		= from[i][j][k].Sn;
+        	to[i][j][k].St  	= from[i][j][k].St;
+        	to[i][j][k].volume 	= from[i][j][k].volume;
+   
+	}
+}
+
+
+
+
 
 void Fields::getGridInfoPassed(Fields::vec3dField& f, Mesh& mesh_, Solution& sol_)
 {
@@ -59,9 +102,13 @@ void Fields::getGridInfoPassed(Fields::vec3dField& f, Mesh& mesh_, Solution& sol
 
 
 
+
+
 void Fields::setVectorFieldGridFeatures()
 {
 }
+
+
 
 
 //initialize the entire field
@@ -73,6 +120,9 @@ void Fields::initializeField(Fields::vec3dField& vec, double val)
 		vec[i][j][k].value = val;
 	}
 }
+
+
+
 
 
 //initialize the internal field only
@@ -88,6 +138,7 @@ void Fields::initializeInternalField(Fields::vec3dField& vec, double val)
 
 
 
+
 //to copy the internal field only
 void Fields::copyInternalField(Fields::vec3dField& from, Fields::vec3dField& to)
 {
@@ -96,6 +147,7 @@ void Fields::copyInternalField(Fields::vec3dField& from, Fields::vec3dField& to)
 		to[i][j][k].value = from[i][j][k].value;
 	}
 }
+
 
 
 
@@ -154,6 +206,8 @@ void Fields::boundaryCondition(Fields::vec3dField& vec,string& wallname, double 
 
 
 
+
+
 void Fields::print3dmat(const Fields::vec3dField& vec)
 {
 	for(unsigned int i = 0; i<vec.size(); i++)
@@ -172,7 +226,11 @@ void Fields::print3dmat(const Fields::vec3dField& vec)
 }
 
 
-void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>& FXvec, vector<double>& FYvec, vector<double>& FZvec, string& wallname)
+
+
+
+void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>& FXvec, 
+			vector<double>& FYvec, vector<double>& FZvec, string& wallname)
 {
 	if(wallname == "EAST")
 	{
@@ -226,10 +284,13 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 		forBottomBoundary(vec)
 		{
 			
-			vec[i][j][k].value = vec[i][j][k+1].value;
+			vec[i][j][k].value = (3*vec[i][j][k+1].value - vec[i][j][k+2].value)*0.5;
 		}
 	}
 }
+
+
+
 
 void Fields::copyOutletVelocity(Fields::vec3dField& vec)
 {

@@ -7,10 +7,15 @@ value(0.0), apnot(0.0), ae(0.0), aw(0.0), an(0.0), as(0.0), at(0.0), ab(0.0), sp
 
 }
 
+
+
+
 FiniteMatrix::~FiniteMatrix()
 {
 
 }
+
+
 
 //operator overlaoding for +, - , *, &&
 
@@ -36,6 +41,8 @@ FiniteMatrix::finiteMat operator+(const FiniteMatrix::finiteMat& lhs, const Fini
 }
 
 
+
+
 // && element wise multiplication** *** NOT matrix multiplication *****
 FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat& lhs, const FiniteMatrix::finiteMat& rhs)
 {
@@ -59,6 +66,10 @@ FiniteMatrix::finiteMat operator&&(const FiniteMatrix::finiteMat& lhs, const Fin
 
 }
 
+
+
+
+
 FiniteMatrix::finiteMat operator*(const double dblval, const FiniteMatrix::finiteMat& rhs)
 {
 	FiniteMatrix::finiteMat result(rhs);
@@ -70,6 +81,9 @@ FiniteMatrix::finiteMat operator*(const double dblval, const FiniteMatrix::finit
 	return result;
 
 }
+
+
+
 
 FiniteMatrix::finiteMat operator-(const FiniteMatrix::finiteMat& lhs, const FiniteMatrix::finiteMat& rhs)
 {
@@ -104,7 +118,7 @@ void FiniteMatrix::print3dmat(finiteMat& vec)
 		{
 			for(unsigned int k = 0; k< vec[0][0].size(); k++)
 			{
-				std::cout <<std::setprecision(3)<< vec[i][j][k].value<<" ";
+				std::cout << vec[i][j][k].value<<" ";
 			}
 			cout<<endl;
 		}
@@ -112,6 +126,9 @@ void FiniteMatrix::print3dmat(finiteMat& vec)
 		cout<<endl;
 	}
 }
+
+
+
 
 //printing source value
 void FiniteMatrix::print3dsource(finiteMat& vec)

@@ -36,6 +36,7 @@ public:
     double X, XC, Y, YC, Z, ZC, FXE, FXP, FYN, FYP, FZT, FZP, DXPtoE, DYPtoN, DZPtoT; // from the mesh
     double Se, Sn, St, visc, density, volume; // Se- face area east
     
+    void copyAllField(Fields::vec3dField&, Fields::vec3dField&);
     void getGridInfoPassed(Fields::vec3dField&, Mesh&, Solution&);
     void setVectorFieldGridFeatures();
 

@@ -18,7 +18,7 @@ void fileWriter::writeUVWP(string& name, int time_, Mesh& Mesh_,
 	Fields::vec3dField& Ptemp)
 {
 	string myfileType	= ".dat";
-	int ttime		= time_;
+	int ttime		= time_+1;
 	string timename;
 	ostringstream temp;
 	temp<<ttime;
