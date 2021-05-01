@@ -1,8 +1,11 @@
 #ifndef EQUATION_H
 #define EQUATION_H
 
+#include <cassert>
+#include <cmath>
 #include <string>
 #include <vector>
+#include <stdlib.h>
 #include "mesh.hpp"
 #include "fields.hpp"
 #include "finitematrix.hpp"
@@ -14,22 +17,32 @@ public:
 	virtual ~Equation();
 
 	typedef vector<FiniteMatrix> Svector1d;
-	typedef FiniteMatrix::finiteMat Svector; // same as that of finiteMat, just a name change
-
-	//void relax(Fields::vec3dField&);
-	//void resetEqn();
-	//void noWallShearXBoundaryCondition(Fields::vec3dField&);
-	//void noWallShearYBoundaryCondition(Fields::vec3dField&);
-	//void noWallShearZBoundaryCondition(Fields::vec3dField&);
+	typedef FiniteMatrix::finiteMat Svector; //same as that of finiteMat, just a name change
 	void assembleEquation(Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&,
 			Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&,int&);
 
-	void assemblePressureEquation();
+	void relax(Fields::vec3dField&, Fields::vec3dField&);
 
+	void assemblePressureCorrectionEquation();
+
+	//solvers
 	Fields::vec3dField solveVelocity(Fields::vec3dField&, unsigned int& );
 	Fields::vec3dField solvePressure(Fields::vec3dField&, unsigned int& );
+	Fields::vec3dField sipSolver(Fields::vec3dField&, Fields::vec3dField&,
+			            Solution&, unsigned int&, double&);
+	Fields::vec3dField sipSolverPressure(Fields::vec3dField&, Solution&, unsigned int&,
+						double&);
+	Fields::vec3dField CGSTAB(Fields::vec3dField&, Solution&, unsigned int&, double&);
+
+	Fields::vec3dField CGSTABvel(Fields::vec3dField&, Fields::vec3dField&, Solution&, 
+						unsigned int&, double&);
+
+	Fields::vec3dField ICCG(Fields::vec3dField&, Solution&, unsigned int&, double&);
+
 	
-	Fields::vec3dField momentumInterpolation(Fields::vec3dField&, Fields::vec3dField&, int&);
+	Fields::vec3dField momentumInterpolation(Fields::vec3dField&, Fields::vec3dField&, 
+		Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&, Solution&, int&);
+
 	Fields::vec3dField massFluxCalculation(Fields::vec3dField&, Fields::vec3dField&, int&);
 
 	Fields::vec3dField faceVelocityCorrection(Fields::vec3dField&, Fields::vec3dField&, 
@@ -40,10 +53,11 @@ public:
 			Fields::vec3dField&, Fields::vec3dField&, int&);
 	double value;
 	double Residual;
-	double RSM; // root-square name
+	double R2;
+	double R2norm;
 	double RESOR;
 
-	double URF, rURF;
+	double URF;
 	std::string EqnName;
 	double SOR;
 
@@ -64,9 +78,17 @@ public:
         FiniteMatrix::finiteMat sourceFinal;
 	FiniteMatrix::finiteMat sourceRelaxed;
 
-private:
+
 	int NI, NJ, NK, NIM, NJM, NKM, Literations;
-	Svector UE, UN, LW, LS, LPR, RES;
+	Svector UE, UN, UT, LB, LW, LS, LPR, RES, AUX, DELTA;
+
+	//for CGSTAB
+	double ALF, BETO, GAM;
+	Svector D, RESO, PK, UK, ZK, VK;
+
+	// for testing
+	FiniteMatrix testmat;
+	Fields testfield;
 };
 
 #endif
