@@ -323,17 +323,18 @@ FiniteMatrix::finiteMat timeCoeff(Fields::vec3dField& vec, Solution& sol_)
 	return APTemp;
 }
 
-//---------------------------------------END TIME COEFFICIENT----------------------------------------------//
+//----------------------------------------END TIME COEFFICIENT----------------------------------------------//
 
 
 
 
 
-//-----------------------------------PRESSURE CORRECTION EQN COEFFICIENT-----------------------------------//
+//----------------------------------PRESSURE CORRECTION EQN COEFFICIENT-------------------------------------//
 // vec is pressure
 
 FiniteMatrix::finiteMat pressureCorrectionCoeff(Fields::vec3dField& vec, Fields::vec3dField& massFluxEast, 
-Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix::finiteMat& AP)
+Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix::finiteMat& APU,
+FiniteMatrix::finiteMat& APV, FiniteMatrix::finiteMat& APW)
 {
 	// recieves the massfluxes and velocity field ( only for distance, viscosity and surface area)
 	FiniteMatrix::finiteMat APTemp(vec.size(), vector<vector<FiniteMatrix>>(vec[0].size(), 
@@ -342,8 +343,8 @@ Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix
 	forAllInternalUCVs(vec)
 	{
 		double f = vec[i][j][k].FXE;
-		double AP_ = AP[i+1][j][k].value*AP[i][j][k].value
-				/(f*AP[i][j][k].value + (1-f)*AP[i+1][j][k].value);
+		double AP_ = APU[i+1][j][k].value*APU[i][j][k].value
+				/(f*APU[i][j][k].value + (1-f)*APU[i+1][j][k].value);
 	
 		APTemp[i][j][k].ae = vec[i][j][k].density*vec[i][j][k].Se*vec[i][j][k].Se/AP_;
 		APTemp[i+1][j][k].aw = vec[i+1][j][k].density*vec[i+1][j][k].Se*vec[i+1][j][k].Se/AP_;
@@ -352,8 +353,8 @@ Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix
 	forAllInternalVCVs(vec)
 	{
 		double f = vec[i][j][k].FYN;
-		double AP_ = AP[i][j+1][k].value*AP[i][j][k].value
-				/(f*AP[i][j][k].value + (1-f)*AP[i][j+1][k].value);
+		double AP_ = APV[i][j+1][k].value*APV[i][j][k].value
+				/(f*APV[i][j][k].value + (1-f)*APV[i][j+1][k].value);
 
 		APTemp[i][j][k].an = vec[i][j][k].density*vec[i][j][k].Sn*vec[i][j][k].Sn/AP_;
 		APTemp[i][j+1][k].as = vec[i][j+1][k].density*vec[i][j+1][k].Sn*vec[i][j+1][k].Sn/AP_;
@@ -363,8 +364,8 @@ Fields::vec3dField& massFluxNorth, Fields::vec3dField& massFluxTop, FiniteMatrix
 	{
 
 		double f = vec[i][j][k].FZT;
-		double AP_ = AP[i][j][k+1].value*AP[i][j][k].value
-				/(f*AP[i][j][k].value + (1-f)*AP[i][j][k+1].value);
+		double AP_ = APW[i][j][k+1].value*APW[i][j][k].value
+				/(f*APW[i][j][k].value + (1-f)*APW[i][j][k+1].value);
 
 		APTemp[i][j][k].at = vec[i][j][k].density*vec[i][j][k].St*vec[i][j][k].St/AP_;
 		APTemp[i][j][k+1].ab = vec[i][j][k+1].density*vec[i][j][k+1].St*vec[i][j][k+1].St/AP_;

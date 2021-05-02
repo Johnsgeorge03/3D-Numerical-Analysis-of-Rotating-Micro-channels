@@ -40,10 +40,10 @@ int main(int argc, char *argv[])
 	double R2PMax = 0.0;
 	double vel_tol = 1e-6;  //tolerance for solver - velocity
 	double pres_tol = 1e-4; //tolerance for solver - pressure
-	double tolerance = 1e-9; // tolerance for outer iteration
+	double tolerance = 1e-10; // tolerance for outer iteration
 	int iter = 0;
 
-	// -------------------------------------- START OF SIMPLE ITERATION ----------------------------------//
+	//--------------------------------------- START OF SIMPLE ITERATION ----------------------------------//
 
 	for(iter = 0; iter< sol.maxit; iter++)
 	{	
@@ -159,6 +159,8 @@ int main(int argc, char *argv[])
 		UW = UEqn->momentumInterpolation(U_, P, U, UWT, WW, sol, eastdir);
 		VW = VEqn->momentumInterpolation(V_, P, V, VWT, VW, sol, northdir);
 		WW = WEqn->momentumInterpolation(W_, P, W, WWT, UW, sol, topdir);
+		fieldOper.boundaryCondition(WW, bottom, inletwvel);
+
 		
 		//------------------ END OF RHIE-CHOW MOMENTUM INTERPOLATION ----------------------------//	
 		
@@ -170,7 +172,8 @@ int main(int argc, char *argv[])
 		massFluxE = UEqn->massFluxCalculation(UW, U_, eastdir);
 		massFluxN = VEqn->massFluxCalculation(VW, V_, northdir);
 		massFluxT = WEqn->massFluxCalculation(WW, W_, topdir);
-		
+		fieldOper.boundaryCondition(massFluxT, bottom, massfluxwinlet);
+	
 		
 		//----------------------- END OF MASS FLUX CALCULATION ----------------------------------//
 	
@@ -183,7 +186,7 @@ int main(int argc, char *argv[])
 
 		Equation *PEqn =  new Equation
 		(
-			fvm::pressureCorrectionCoeff(P, UW, VW, WW, UEqn->AP)
+			fvm::pressureCorrectionCoeff(P, UW, VW, WW, UEqn->AP, VEqn->AP, WEqn->AP)
 			+ fvm::pressureCorrectionSource(P, massFluxE, massFluxN, massFluxT)
 		);
 
@@ -227,6 +230,18 @@ int main(int argc, char *argv[])
 
 
 
+		//--------------------------PRESSURE CORRECTION EXTRAPOLATION ---------------------------//
+
+		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, east);
+		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, west);
+		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, north);
+		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, south);
+		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, bottom);
+
+		//--------------------END OF PRESSURE CORRECTION EXTRAPOLATION --------------------------//
+
+
+
 
 		//---------------------------------FIELD CORRECTION--------------------------------------//
 
@@ -243,10 +258,10 @@ int main(int argc, char *argv[])
 		massFluxNC = VEqn->massFluxCorrection(PC, UWC, VWC, WWC, northdir);
 		massFluxTC = WEqn->massFluxCorrection(PC, UWC, VWC, WWC, topdir);
 
-		// velocity values are not used here, only for extracting area
-		UC = UEqn->cellVelocityCorrection(PC, U_, V_, W_, eastdir);
-		VC = VEqn->cellVelocityCorrection(PC, U_, V_, W_, northdir); 
-		WC = WEqn->cellVelocityCorrection(PC, U_, V_, W_, topdir);
+
+		UC = UEqn->cellVelocityCorrection(PC, eastdir);
+		VC = VEqn->cellVelocityCorrection(PC, northdir); 
+		WC = WEqn->cellVelocityCorrection(PC, topdir);
 
 		//********* end of correction of velocity and massflux******************//
 
@@ -284,20 +299,32 @@ int main(int argc, char *argv[])
 
 		forAllInternal(P)
 		{
-			P_[i][j][k].value = P[i][j][k].value + sol.URFPressure*PC[i][j][k].value;
+			P_[i][j][k].value = P[i][j][k].value + sol.URFPressure*(PC[i][j][k].value);
 			// P is the previous outer iteration pressure 
 			U_[i][j][k].value = U_[i][j][k].value + UC[i][j][k].value;		
 			// U_ in the rhs is obtained from solving momentum equation
 			V_[i][j][k].value = V_[i][j][k].value + VC[i][j][k].value;
 			W_[i][j][k].value = W_[i][j][k].value + WC[i][j][k].value;
 		}
+		
+		double total_outlet_mass_flux = 0.0;
 
-		forTopBoundary(W)
+		forTopBoundary(W_)
 		{
 			W_[i][j][k].value = WW[i][j][k-1].value;
+			total_outlet_mass_flux += sol.density*W_[i][j][k-1].St*W_[i][j][k].value;
 
 		}
+		
+		double total_inlet_mass_flux = lengthX*lengthY*sol.density*inletwvel;
 
+/*
+		forTopBoundary(W_)
+		{
+			W_[i][j][k].value = total_inlet_mass_flux*W_[i][j][k].value
+						/total_outlet_mass_flux;
+		}
+*/		
 		//---------------------------------- END OF CORRECTION ------------------------------------//
 
 
@@ -403,7 +430,6 @@ int main(int argc, char *argv[])
 
 	} 
 	//------------------------------------ END OF SIMPLE ITERATION --------------------------------------//
-	
 	cout<<"------------END OF TIMESTEP: " << timeiter + 1<<endl;
 	cout<<endl;
 	cout<<endl;

@@ -80,7 +80,7 @@ testfield(NI, NJ, NK)
 	
 }
 
-//---------------------------------------- ASSEMBLE MOMENTUM EQUATION ----------------------------------------------//
+//--------------------------------- ASSEMBLE MOMENTUM EQUATION ----------------------------------------------//
 
 void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dField& massFluxNorth, 
 				Fields::vec3dField& massFluxTop, Fields::vec3dField& Ucell, Fields::vec3dField& Vcell,
@@ -238,7 +238,8 @@ void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dF
 				+ AT[i][j][k].value
 				+ massFluxEast[i][j][k].value - massFluxEast[i-1][j][k].value
 				+ massFluxNorth[i][j][k].value - massFluxNorth[i][j-1][k].value
-			- massFluxTop[i][j][k-1].value + Wcell[i][j][k].density*Wcell[i][j][k].St*Wcell[i][j][k].value; 
+			- massFluxTop[i][j][k-1].value 
+			+ Wcell[i][j][k].density*Wcell[i][j][k].St*Wcell[i][j][k].value; 
 			// no flux fromoutlet
 				
 			assert(std::isinf(AP[i][j][k].value)!= 1);
@@ -249,12 +250,12 @@ void Equation::assembleEquation(Fields::vec3dField& massFluxEast, Fields::vec3dF
 	}
 } 
 
-//------------------------------------------ END OF MOMENTUM ASSEMBLY ----------------------------------------------//
+//------------------------------------ END OF MOMENTUM ASSEMBLY ----------------------------------------------//
 
 
 
 
-//--------------------------------------------- UNDER-RELAXATION ---------------------------------------------------//
+//--------------------------------------- UNDER-RELAXATION ---------------------------------------------------//
 
 void Equation::relax(Fields::vec3dField& vec, Fields::vec3dField& vecold)
 {
@@ -271,12 +272,12 @@ void Equation::relax(Fields::vec3dField& vec, Fields::vec3dField& vecold)
 
 }
 
-//----------------------------------------- END OF UNDER-RELAXATION -------------------------------------------------//
+//---------------------------------- END OF UNDER-RELAXATION -------------------------------------------------//
 
 
 
 
-//------------------------------     ASSEMBLE PRESSURECORRECTION EQUATION -------------------------------------------//
+//----------------------------ASSEMBLE PRESSURECORRECTION EQUATION -------------------------------------------//
 
 void Equation::assemblePressureCorrectionEquation()
 {
@@ -298,18 +299,20 @@ void Equation::assemblePressureCorrectionEquation()
 
 }
 
-// ---------------------------------- END OF PRESSURE CORRECTION ASSEMBLY --------------------------------------------//
+// ---------------------------------- END OF PRESSURE CORRECTION ASSEMBLY -----------------------------------//
 
 
 
 
 
-// -------------------------------------GAUSS-SIEDEL SOLVER FOR VELOCITY ---------------------------------------------//
+// -------------------------------------GAUSS-SIEDEL SOLVER FOR VELOCITY ------------------------------------//
 
 Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int& iterations)
 {
-	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
-	Fields::vec3dField phiold (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), 
+					Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phiold (phi.size(), Fields::vec2dField(phi[0].size(), 
+					Fields::vec1dField(phi[0][0].size())));
 	phiold = phi;
 	for(unsigned int iter = 1; iter<= iterations; iter++)
 	{
@@ -319,7 +322,8 @@ Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int
 			{
 				for(unsigned int k = 1; k<phi[0][0].size() - 1; k++)
 				{
-					phi[i][j][k].value = rAP[i][j][k].value*(AW[i][j][k].value*phi[i-1][j][k].value
+					phi[i][j][k].value = rAP[i][j][k].value
+					*(AW[i][j][k].value*phi[i-1][j][k].value
 					+ AE[i][j][k].value*phi[i+1][j][k].value 
 					+ AS[i][j][k].value*phi[i][j-1][k].value
 					+ AN[i][j][k].value*phi[i][j+1][k].value 
@@ -343,11 +347,11 @@ Fields::vec3dField Equation::solveVelocity(Fields::vec3dField& phi, unsigned int
 	
 	return phitemp;
 }
-//-------------------------------------END OF GAUSS-SIEDEL SOLVER FOR VELOCITY-------------------------------------------//
+//-----------------------------END OF GAUSS-SIEDEL SOLVER FOR VELOCITY---------------------------------------//
 
 
 
-//---------------------------------------- GAUSS-SIEDEL SOLVER FOR PRESSURE ---------------------------------------------//
+//------------------------------- GAUSS-SIEDEL SOLVER FOR PRESSURE ------------------------------------------//
 // pass pressure
 Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int& iterations)
 {
@@ -366,9 +370,12 @@ Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int
 			{
 				RES[i][j][k].value = SP[i][j][k].value
 				- (AP[i][j][k].value*phi[i][j][k].value
-				- AE[i][j][k].value*phi[i+1][j][k].value - AW[i][j][k].value*phi[i-1][j][k].value
-				- AS[i][j][k].value*phi[i][j-1][k].value - AN[i][j][k].value*phi[i][j+1][k].value
-				- AT[i][j][k].value*phi[i][j][k+1].value - AB[i][j][k].value*phi[i][j][k-1].value);
+				- AE[i][j][k].value*phi[i+1][j][k].value 
+				- AW[i][j][k].value*phi[i-1][j][k].value
+				- AS[i][j][k].value*phi[i][j-1][k].value 
+				- AN[i][j][k].value*phi[i][j+1][k].value
+				- AT[i][j][k].value*phi[i][j][k+1].value 
+				- AB[i][j][k].value*phi[i][j][k-1].value);
 
 				Residual += std::pow(RES[i][j][k].value, 2.0);
 
@@ -387,7 +394,8 @@ Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int
 	
 	R2norm = R2/(RESOR + small);
 	
-	cout<<EqnName<< " Inner iteration of gauss siedel Solver "<< iter+1 <<" and R2 --> " <<R2<<" R2norm "<< R2norm <<endl;
+	cout<<EqnName<< " Inner iteration of gauss siedel Solver "<< iter+1
+			<<" and R2 --> " <<R2<<" R2norm "<< R2norm <<endl;
 
 		for(unsigned int i = 1; i< phi.size() - 1; i++)
 		{
@@ -395,10 +403,14 @@ Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int
 			{
 				for(unsigned int k = 1; k<phi[0][0].size() - 1; k++)
 				{
-					phi[i][j][k].value = rAP[i][j][k].value*(AW[i][j][k].value*phi[i-1][j][k].value
-					+ AE[i][j][k].value*phi[i+1][j][k].value + AS[i][j][k].value*phi[i][j-1][k].value
-					+ AN[i][j][k].value*phi[i][j+1][k].value + AB[i][j][k].value*phi[i][j][k-1].value
-					+ AT[i][j][k].value*phi[i][j][k+1].value + SP[i][j][k].value);
+					phi[i][j][k].value = rAP[i][j][k].value
+					*(AW[i][j][k].value*phi[i-1][j][k].value
+					+ AE[i][j][k].value*phi[i+1][j][k].value 
+					+ AS[i][j][k].value*phi[i][j-1][k].value
+					+ AN[i][j][k].value*phi[i][j+1][k].value 
+					+ AB[i][j][k].value*phi[i][j][k-1].value
+					+ AT[i][j][k].value*phi[i][j][k+1].value 
+					+ SP[i][j][k].value);
 				}
 			}
 
@@ -413,18 +425,19 @@ Fields::vec3dField Equation::solvePressure(Fields::vec3dField& phi, unsigned int
 
 }
 
-//-------------------------------------- END OF GAUSS - SIEDEL SOLVER FOR PRESSURE ---------------------------------------//
+//---------------------------- END OF GAUSS - SIEDEL SOLVER FOR PRESSURE -------------------------------------//
 
 
 
 
-//---------------------------------------------- SIP SOLVER FOR VELOCITY -------------------------------------------------//
+//------------------------------------ SIP SOLVER FOR VELOCITY -----------------------------------------------//
 
 Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dField& phiold, Solution& sol, 
 					unsigned int& iterations, double& tolerance)
 
 {
-	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), 
+					Fields::vec1dField(phi[0][0].size())));
 
 	// coefficients of upper and lower triangular matrix
 	
@@ -435,11 +448,14 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
 				LB[i][j][k].value = -AB[i][j][k].value
-							/( 1.0 + sol.alfa*(UN[i][j][k-1].value + UE[i][j][k-1].value));
+							/( 1.0 + sol.alfa*(UN[i][j][k-1].value 
+							+ UE[i][j][k-1].value));
 				LW[i][j][k].value = -AW[i][j][k].value
-							/( 1.0 + sol.alfa*(UN[i-1][j][k].value + UT[i-1][j][k].value));
+							/( 1.0 + sol.alfa*(UN[i-1][j][k].value 
+							+ UT[i-1][j][k].value));
 				LS[i][j][k].value = -AS[i][j][k].value
-							/( 1.0 + sol.alfa*(UE[i][j-1][k].value + UT[i][j-1][k].value));
+							/( 1.0 + sol.alfa*(UE[i][j-1][k].value 
+							+ UT[i][j-1][k].value));
 
 				double H1 = sol.alfa*(LB[i][j][k].value*UN[i][j][k-1].value
 							+ LW[i][j][k].value*UN[i-1][j][k].value);
@@ -477,15 +493,20 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 				RES[i][j][k].value = sourceRelaxed[i][j][k].value
 				+ APNot[i][j][k].value*phiold[i][j][k].value 
 				- (AP[i][j][k].value*phi[i][j][k].value
-				- AE[i][j][k].value*phi[i+1][j][k].value - AW[i][j][k].value*phi[i-1][j][k].value
-				- AS[i][j][k].value*phi[i][j-1][k].value - AN[i][j][k].value*phi[i][j+1][k].value
-				- AT[i][j][k].value*phi[i][j][k+1].value - AB[i][j][k].value*phi[i][j][k-1].value);
+				- AE[i][j][k].value*phi[i+1][j][k].value 
+				- AW[i][j][k].value*phi[i-1][j][k].value
+				- AS[i][j][k].value*phi[i][j-1][k].value 
+				- AN[i][j][k].value*phi[i][j+1][k].value
+				- AT[i][j][k].value*phi[i][j][k+1].value 
+				- AB[i][j][k].value*phi[i][j][k-1].value);
 
 				Residual += std::pow(RES[i][j][k].value, 2.0);
 
-				AUX[i][j][k].value = (RES[i][j][k].value - LB[i][j][k].value*AUX[i][j][k-1].value
+				AUX[i][j][k].value = (RES[i][j][k].value 
+						- LB[i][j][k].value*AUX[i][j][k-1].value
 						- LW[i][j][k].value*AUX[i-1][j][k].value 
-						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; // U*delta
+						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; 
+						// U*delta
 				
 				//LUdelta = RES
 				//U*delta = Linv* RES
@@ -494,6 +515,15 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 		}
 
 	}
+
+
+/*	// TESTING ONLY
+
+	cout<<" ITERATION NO: "<<L + 1<<endl;
+	cout<<EqnName<<"  - RES " <<endl;
+	testmat.print3dmat(RES);
+	cout<<" END RES "<<endl;
+*/	// TESTING END
 
 	R2 = std::sqrt(Residual);
 	double small = 1e-20;
@@ -504,7 +534,8 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 	
 	R2norm = R2/(RESOR + small);
 	
-	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1 << " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1
+				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
 
 	if(R2norm <= tolerance)
 	{
@@ -530,7 +561,8 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				DELTA[i][j][k].value = AUX[i][j][k].value - UN[i][j][k].value*DELTA[i][j+1][k].value
+				DELTA[i][j][k].value = AUX[i][j][k].value 
+						- UN[i][j][k].value*DELTA[i][j+1][k].value
 						- UE[i][j][k].value*DELTA[i+1][j][k].value
 						- UT[i][j][k].value*DELTA[i][j][k+1].value; 
 
@@ -554,17 +586,18 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 
 } 
 
-//------------------------------------------ END OF SIP SOLVER FOR VELOCITY ---------------------------------------------//
+//------------------------------------ END OF SIP SOLVER FOR VELOCITY ----------------------------------------//
 
 
 
 
-//---------------------------------------------- SIP SOLVER FOR PRESSURE ------------------------------------------------//
+//---------------------------------------- SIP SOLVER FOR PRESSURE -------------------------------------------//
 
 Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution& sol, unsigned int& iterations,
 						double& tolerance)
 {
-	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), 
+					Fields::vec1dField(phi[0][0].size())));
 
 	// coefficients of upper and lower triangular matrix
 	
@@ -575,11 +608,14 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
 				LB[i][j][k].value = -AB[i][j][k].value
-							/( 1.0 + sol.alfa*(UN[i][j][k-1].value + UE[i][j][k-1].value));
+							/( 1.0 + sol.alfa*(UN[i][j][k-1].value 
+								+ UE[i][j][k-1].value));
 				LW[i][j][k].value = -AW[i][j][k].value
-							/( 1.0 + sol.alfa*(UN[i-1][j][k].value + UT[i-1][j][k].value));
+							/( 1.0 + sol.alfa*(UN[i-1][j][k].value 
+								+ UT[i-1][j][k].value));
 				LS[i][j][k].value = -AS[i][j][k].value
-							/( 1.0 + sol.alfa*(UE[i][j-1][k].value + UT[i][j-1][k].value));
+							/( 1.0 + sol.alfa*(UE[i][j-1][k].value 
+								+ UT[i][j-1][k].value));
 
 				double H1 = sol.alfa*(LB[i][j][k].value*UN[i][j][k-1].value
 							+ LW[i][j][k].value*UN[i-1][j][k].value);
@@ -616,15 +652,20 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 			{
 				RES[i][j][k].value = SP[i][j][k].value
 				- (AP[i][j][k].value*phi[i][j][k].value
-				- AE[i][j][k].value*phi[i+1][j][k].value - AW[i][j][k].value*phi[i-1][j][k].value
-				- AS[i][j][k].value*phi[i][j-1][k].value - AN[i][j][k].value*phi[i][j+1][k].value
-				- AT[i][j][k].value*phi[i][j][k+1].value - AB[i][j][k].value*phi[i][j][k-1].value);
+				- AE[i][j][k].value*phi[i+1][j][k].value 
+				- AW[i][j][k].value*phi[i-1][j][k].value
+				- AS[i][j][k].value*phi[i][j-1][k].value 
+				- AN[i][j][k].value*phi[i][j+1][k].value
+				- AT[i][j][k].value*phi[i][j][k+1].value 
+				- AB[i][j][k].value*phi[i][j][k-1].value);
 
 				Residual += std::pow(RES[i][j][k].value, 2.0);
 
-				AUX[i][j][k].value = (RES[i][j][k].value - LB[i][j][k].value*AUX[i][j][k-1].value
+				AUX[i][j][k].value = (RES[i][j][k].value 
+						- LB[i][j][k].value*AUX[i][j][k-1].value
 						- LW[i][j][k].value*AUX[i-1][j][k].value 
-						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; // U*delta
+						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; 
+						// U*delta
 				
 				//LUdelta = RES
 				//U*delta = Linv* RES
@@ -643,7 +684,8 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 	
 	R2norm = R2/(RESOR + small);
 	
-	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1 << " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1 
+				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
 	
 	if(R2norm <= tolerance)
 	{
@@ -670,7 +712,8 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				DELTA[i][j][k].value = AUX[i][j][k].value - UN[i][j][k].value*DELTA[i][j+1][k].value
+				DELTA[i][j][k].value = AUX[i][j][k].value 
+						- UN[i][j][k].value*DELTA[i][j+1][k].value
 						- UE[i][j][k].value*DELTA[i+1][j][k].value
 						- UT[i][j][k].value*DELTA[i][j][k+1].value; 
 
@@ -681,7 +724,6 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 		}
 
 	}
-
 	} // end iteration loop
 
 	cout<<endl;
@@ -694,17 +736,19 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 
 } 
 
-//--------------------------------------- END OF SIP SOLVER FOR PRESSURE ------------------------------------------------//
+//------------------------------- END OF SIP SOLVER FOR PRESSURE ---------------------------------------------//
 
 
 
 
-//----------------------------------------- CGSTAB SOLVER FOR PRESSURE --------------------------------------------------//
+//-------------------------------- CGSTAB SOLVER FOR PRESSURE ------------------------------------------------//
 
-Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsigned int& iterations, double& tolerance)
+Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, 
+				unsigned int& iterations, double& tolerance)
 {
 	
-	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), 
+					Fields::vec1dField(phi[0][0].size())));
 
 	// CALCULATION OF INITIAL RESIDUAL VECTOR
 
@@ -718,9 +762,12 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 			{
 				RES[i][j][k].value = SP[i][j][k].value
 				- (AP[i][j][k].value*phi[i][j][k].value
-				- AE[i][j][k].value*phi[i+1][j][k].value - AW[i][j][k].value*phi[i-1][j][k].value
-				- AS[i][j][k].value*phi[i][j-1][k].value - AN[i][j][k].value*phi[i][j+1][k].value
-				- AT[i][j][k].value*phi[i][j][k+1].value - AB[i][j][k].value*phi[i][j][k-1].value);
+				- AE[i][j][k].value*phi[i+1][j][k].value 
+				- AW[i][j][k].value*phi[i-1][j][k].value
+				- AS[i][j][k].value*phi[i][j-1][k].value 
+				- AN[i][j][k].value*phi[i][j+1][k].value
+				- AT[i][j][k].value*phi[i][j][k+1].value 
+				- AB[i][j][k].value*phi[i][j][k-1].value);
 
 				RES0 += std::pow(RES[i][j][k].value, 2.0);
 				RESO[i][j][k].value = RES[i][j][k].value;
@@ -741,9 +788,12 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
 				D[i][j][k].value = 1.0/(AP[i][j][k].value 
-							- AW[i][j][k].value*D[i-1][j][k].value*AE[i-1][j][k].value
-							- AS[i][j][k].value*D[i][j-1][k].value*AN[i][j-1][k].value
-							- AB[i][j][k].value*D[i][j][k-1].value*AT[i][j][k-1].value);
+							- AW[i][j][k].value*D[i-1][j][k].value
+							*AE[i-1][j][k].value
+							- AS[i][j][k].value*D[i][j-1][k].value
+							*AN[i][j-1][k].value
+							- AB[i][j][k].value*D[i][j][k-1].value
+							*AT[i][j][k-1].value);
 
 			}
 
@@ -755,7 +805,11 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 
 	for(unsigned int L = 0; L<iterations; L++)
 	{
-
+	if(L == 0 and RESOR < 1e-10)
+	{
+		cout<<EqnName<<": No need for inner iteration "<<endl;
+		break;
+	}
 	double BET = 0.0;
 	for(unsigned int k = 1; k< phi[0][0].size() -1; k++)
 	{
@@ -780,7 +834,8 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 		{
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
-				PK[i][j][k].value = RES[i][j][k].value + OM*(PK[i][j][k].value - ALF*UK[i][j][k].value);
+				PK[i][j][k].value = RES[i][j][k].value + OM*(PK[i][j][k].value 
+									- ALF*UK[i][j][k].value);
 			}
 
 		}
@@ -795,9 +850,11 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 		{
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
-				ZK[i][j][k].value = (PK[i][j][k].value + AW[i][j][k].value*ZK[i-1][j][k].value
+				ZK[i][j][k].value = (PK[i][j][k].value 
+							+ AW[i][j][k].value*ZK[i-1][j][k].value
 							+ AS[i][j][k].value*ZK[i][j-1][k].value
-							+ AB[i][j][k].value*ZK[i][j][k-1].value)*D[i][j][k].value;
+							+ AB[i][j][k].value*ZK[i][j][k-1].value)
+							*D[i][j][k].value;
 			}
 
 		}
@@ -825,9 +882,11 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				ZK[i][j][k].value = (ZK[i][j][k].value + AE[i][j][k].value*ZK[i+1][j][k].value
+				ZK[i][j][k].value = (ZK[i][j][k].value 
+							+ AE[i][j][k].value*ZK[i+1][j][k].value
 							+ AN[i][j][k].value*ZK[i][j+1][k].value
-							+ AT[i][j][k].value*ZK[i][j][k+1].value)*D[i][j][k].value;
+							+ AT[i][j][k].value*ZK[i][j][k+1].value)
+							*D[i][j][k].value;
 			
 			}
 
@@ -901,7 +960,8 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 				ZK[i][j][k].value = (RES[i][j][k].value 
 							+ AW[i][j][k].value*ZK[i-1][j][k].value
 							+ AS[i][j][k].value*ZK[i][j-1][k].value
-							+ AB[i][j][k].value*ZK[i][j][k-1].value)*D[i][j][k].value;
+							+ AB[i][j][k].value*ZK[i][j][k-1].value)
+							*D[i][j][k].value;
 			}
 
 		}
@@ -929,9 +989,11 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				ZK[i][j][k].value = (ZK[i][j][k].value + AE[i][j][k].value*ZK[i+1][j][k].value
+				ZK[i][j][k].value = (ZK[i][j][k].value 
+							+ AE[i][j][k].value*ZK[i+1][j][k].value
 							+ AN[i][j][k].value*ZK[i][j+1][k].value
-							+ AT[i][j][k].value*ZK[i][j][k+1].value)*D[i][j][k].value;
+							+ AT[i][j][k].value*ZK[i][j][k+1].value)
+							*D[i][j][k].value;
 			
 			}
 
@@ -998,19 +1060,25 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 
 	}
 
+
+/*	// TESTING ONLY
+
+	cout<<" ITERATION NO: "<<L + 1<<endl;
+	cout<<EqnName<<"  - RES " <<endl;
+	testmat.print3dmat(RES);
+	cout<<" END RES "<<endl;
+*/	// TESTING END
+
 	RESL = std::sqrt(RESL);
 	R2 = RESL;
-
+	
 	// CHECK CONVERGENCE
 
 	R2norm = R2/(RESOR + 1e-30);
 	
-	cout<<EqnName<< " Inner iteration of CGSTAB Solver "<< L+1 << " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
-	if(L == 0 and RESOR < 1e-9)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
+	cout<<EqnName<< " Inner iteration of CGSTAB Solver "<< L+1 
+					<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+
 
 	if(L == iterations - 1)
 	{
@@ -1018,7 +1086,7 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 		exit(0);
 	}
 
-	if(R2 > 1e-9)
+	if(R2 > 1e-10)
 	{
 		if(R2norm <= tolerance and R2 < 1e-6)
 		{
@@ -1046,18 +1114,19 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol, unsi
 	return phitemp;
 }
 
-//----------------------------------------- END OF CGSTAB SOLVER FOR PRESSURE --------------------------------------------//
+//--------------------------------- END OF CGSTAB SOLVER FOR PRESSURE ----------------------------------------//
 
 
 
 
-//----------------------------------------------CGSTAB SOLVER FOR VELOCITY -----------------------------------------------//
+//------------------------------------CGSTAB SOLVER FOR VELOCITY ---------------------------------------------//
 
 Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dField& phiold, Solution& sol, 
 						unsigned int& iterations, double& tolerance)
 {
 	
-	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), Fields::vec1dField(phi[0][0].size())));
+	Fields::vec3dField phitemp (phi.size(), Fields::vec2dField(phi[0].size(), 
+						Fields::vec1dField(phi[0][0].size())));
 
 	// CALCULATION OF INITIAL RESIDUAL VECTOR
 
@@ -1072,9 +1141,12 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 				RES[i][j][k].value = sourceRelaxed[i][j][k].value
 				+ APNot[i][j][k].value*phiold[i][j][k].value
 				- (AP[i][j][k].value*phi[i][j][k].value
-				- AE[i][j][k].value*phi[i+1][j][k].value - AW[i][j][k].value*phi[i-1][j][k].value
-				- AS[i][j][k].value*phi[i][j-1][k].value - AN[i][j][k].value*phi[i][j+1][k].value
-				- AT[i][j][k].value*phi[i][j][k+1].value - AB[i][j][k].value*phi[i][j][k-1].value);
+				- AE[i][j][k].value*phi[i+1][j][k].value 
+				- AW[i][j][k].value*phi[i-1][j][k].value
+				- AS[i][j][k].value*phi[i][j-1][k].value 
+				- AN[i][j][k].value*phi[i][j+1][k].value
+				- AT[i][j][k].value*phi[i][j][k+1].value 
+				- AB[i][j][k].value*phi[i][j][k-1].value);
 				
 				assert(isnan(RES[i][j][k].value) != 1);
 				RES0 += std::pow(RES[i][j][k].value, 2.0);
@@ -1097,9 +1169,12 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
 				D[i][j][k].value = 1.0/(AP[i][j][k].value 
-							- AW[i][j][k].value*D[i-1][j][k].value*AE[i-1][j][k].value
-							- AS[i][j][k].value*D[i][j-1][k].value*AN[i][j-1][k].value
-							- AB[i][j][k].value*D[i][j][k-1].value*AT[i][j][k-1].value);
+							- AW[i][j][k].value*D[i-1][j][k].value
+							*AE[i-1][j][k].value
+							- AS[i][j][k].value*D[i][j-1][k].value
+							*AN[i][j-1][k].value
+							- AB[i][j][k].value*D[i][j][k-1].value
+							*AT[i][j][k-1].value);
 
 			}
 
@@ -1112,6 +1187,11 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 
 	for(unsigned int L = 0; L<iterations; L++)
 	{
+	if(L == 0 and RESOR < 1e-10)
+	{
+		cout<<EqnName<<": No need for inner iteration "<<endl;
+		break;
+	}
 
 	double BET = 0.0;
 	for(unsigned int k = 1; k< phi[0][0].size() -1; k++)
@@ -1137,7 +1217,8 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 		{
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
-				PK[i][j][k].value = RES[i][j][k].value + OM*(PK[i][j][k].value - ALF*UK[i][j][k].value);
+				PK[i][j][k].value = RES[i][j][k].value + OM*(PK[i][j][k].value 
+									- ALF*UK[i][j][k].value);
 			}
 
 		}
@@ -1152,9 +1233,11 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 		{
 			for(unsigned int j = 1; j<phi[0].size() - 1; j++)
 			{
-				ZK[i][j][k].value = (PK[i][j][k].value + AW[i][j][k].value*ZK[i-1][j][k].value
+				ZK[i][j][k].value = (PK[i][j][k].value 
+							+ AW[i][j][k].value*ZK[i-1][j][k].value
 							+ AS[i][j][k].value*ZK[i][j-1][k].value
-							+ AB[i][j][k].value*ZK[i][j][k-1].value)*D[i][j][k].value;
+							+ AB[i][j][k].value*ZK[i][j][k-1].value)
+							*D[i][j][k].value;
 			}
 
 		}
@@ -1182,9 +1265,11 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				ZK[i][j][k].value = (ZK[i][j][k].value + AE[i][j][k].value*ZK[i+1][j][k].value
+				ZK[i][j][k].value = (ZK[i][j][k].value 
+							+ AE[i][j][k].value*ZK[i+1][j][k].value
 							+ AN[i][j][k].value*ZK[i][j+1][k].value
-							+ AT[i][j][k].value*ZK[i][j][k+1].value)*D[i][j][k].value;
+							+ AT[i][j][k].value*ZK[i][j][k+1].value)
+							*D[i][j][k].value;
 			
 			}
 
@@ -1258,7 +1343,8 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 				ZK[i][j][k].value = (RES[i][j][k].value 
 							+ AW[i][j][k].value*ZK[i-1][j][k].value
 							+ AS[i][j][k].value*ZK[i][j-1][k].value
-							+ AB[i][j][k].value*ZK[i][j][k-1].value)*D[i][j][k].value;
+							+ AB[i][j][k].value*ZK[i][j][k-1].value)
+							*D[i][j][k].value;
 			}
 
 		}
@@ -1286,9 +1372,11 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 		{
 			for(unsigned int j = phi[0].size() - 2; j >= 1; --j)
 			{
-				ZK[i][j][k].value = (ZK[i][j][k].value + AE[i][j][k].value*ZK[i+1][j][k].value
+				ZK[i][j][k].value = (ZK[i][j][k].value + 
+							AE[i][j][k].value*ZK[i+1][j][k].value
 							+ AN[i][j][k].value*ZK[i][j+1][k].value
-							+ AT[i][j][k].value*ZK[i][j][k+1].value)*D[i][j][k].value;
+							+ AT[i][j][k].value*ZK[i][j][k+1].value)
+							*D[i][j][k].value;
 			
 			}
 
@@ -1355,6 +1443,16 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 		}
 
 	}
+
+/*	// TESTING ONLY
+
+	cout<<" ITERATION NO: "<<iterations + 1<<endl;
+	cout<<EqnName<<"  - RES " <<endl;
+	testmat.print3dmat(RES);
+	cout<<" END RES "<<endl;
+	// TESTING END
+*/
+
 	RESL = std::sqrt(RESL);
 	R2 = RESL;
 	
@@ -1362,13 +1460,9 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 
 	R2norm = R2/(RESOR + 1e-30);
 	
-	cout<<EqnName<< " Inner iteration of CGSTAB Solver "<< L+1 << " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+	cout<<EqnName<< " Inner iteration of CGSTAB Solver "<< L+1
+				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
 
-	if(L == 0 and RESOR < 1e-9)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
 
 	if(L == iterations - 1)
 	{
@@ -1377,7 +1471,7 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 
 	}
 
-	if(R2 > 1e-9)
+	if(R2 > 1e-10)
 	{
 		if(R2norm <= tolerance and R2 <1e-6)
 		{
@@ -1404,13 +1498,13 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 	return phitemp;
 }
 
-//----------------------------------------- END OF CGSTAB FOR VELOCITY ---------------------------------------------------//
+//---------------------------------- END OF CGSTAB FOR VELOCITY ----------------------------------------------//
 
 
 
 
 
-//-----------------------------------------------ICCG FOR PRESSURE--------------------------------------------------------//
+//-----------------------------------------ICCG FOR PRESSURE--------------------------------------------------//
 
 Fields::vec3dField Equation::ICCG(Fields::vec3dField& phi, Solution& sol, 
 unsigned int& iterations, double& tolerance)
@@ -1915,7 +2009,8 @@ Fields::vec3dField Equation::massFluxCalculation(Fields::vec3dField& wallvel,
 //---------------------------------- FACE VELOCITY CORRECTION ------------------------------------------------//
 
 Fields::vec3dField Equation::faceVelocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWall, 
-						Fields::vec3dField& VWall, Fields::vec3dField& WWall, int& direction)
+						Fields::vec3dField& VWall, Fields::vec3dField& WWall, 
+						int& direction)
 {
 	if(direction == 1) // Uwall vel correction
 	{
@@ -1995,7 +2090,8 @@ Fields::vec3dField Equation::faceVelocityCorrection(Fields::vec3dField& PCorr, F
 //-------------------------------------- MASSFLUX CORRECTION ------------------------------------------------//
 
 Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& UWCorr, 
-						Fields::vec3dField& VWCorr, Fields::vec3dField& WWCorr, int& direction)
+						Fields::vec3dField& VWCorr, Fields::vec3dField& WWCorr, 
+						int& direction)
 {
 	if(direction == 1) // east direction mass flux correction
 	{
@@ -2047,17 +2143,25 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Field
 
 //--------------------------------CELL VELOCITY CORRECTION----------------------------------------------------//
 
-Fields::vec3dField Equation::cellVelocityCorrection(Fields::vec3dField& PCorr, Fields::vec3dField& Ucentre, 
-						Fields::vec3dField& Vcentre, Fields::vec3dField& Wcentre, int& direction)
+Fields::vec3dField Equation::cellVelocityCorrection(Fields::vec3dField& PCorr, int& direction)
 {
+
+	
 	if(direction == 1) // U vel correction
 	{
 		Fields::vec3dField Ucell (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 
 		forAllInternal(Ucell)
 		{
-			Ucell[i][j][k].value = 0.5*rAP[i][j][k].value*Ucentre[i][j][k].Se
-						*(PCorr[i-1][j][k].value - PCorr[i+1][j][k].value);
+			double DX =  PCorr[i][j][k].X - PCorr[i-1][j][k].X;
+
+			double PCE = PCorr[i+1][j][k].value*PCorr[i][j][k].FXE
+					+ PCorr[i][j][k].value*PCorr[i][j][k].FXP;
+
+			double PCW = PCorr[i][j][k].value*PCorr[i-1][j][k].FXE
+					+ PCorr[i-1][j][k].value*PCorr[i-1][j][k].FXP;
+
+			Ucell[i][j][k].value = rAP[i][j][k].value*PCorr[i][j][k].volume*(PCW - PCE)/DX;
 		}
 
 		return Ucell;
@@ -2070,8 +2174,15 @@ Fields::vec3dField Equation::cellVelocityCorrection(Fields::vec3dField& PCorr, F
 
 		forAllInternal(Vcell)
 		{
-			Vcell[i][j][k].value = 0.5*rAP[i][j][k].value*Vcentre[i][j][k].Sn
-						*(PCorr[i][j-1][k].value - PCorr[i][j+1][k].value);
+			double DY = PCorr[i][j][k].Y - PCorr[i][j-1][k].Y;
+
+			double PCN = PCorr[i][j+1][k].value*PCorr[i][j][k].FYN
+					+ PCorr[i][j][k].value*PCorr[i][j][k].FYP;
+					
+			double PCS = PCorr[i][j][k].value*PCorr[i][j-1][k].FYN
+					+ PCorr[i][j-1][k].value*PCorr[i][j-1][k].FYP;
+
+			Vcell[i][j][k].value = rAP[i][j][k].value*PCorr[i][j][k].volume*(PCS - PCN)/DY;
 
 		}
 
@@ -2087,9 +2198,15 @@ Fields::vec3dField Equation::cellVelocityCorrection(Fields::vec3dField& PCorr, F
 
 		forAllInternal(Wcell)
 		{
+			double DZ = PCorr[i][j][k].Z - PCorr[i][j][k-1].Z;
 
-			Wcell[i][j][k].value = 0.5*rAP[i][j][k].value*Wcentre[i][j][k].St
-						*(PCorr[i][j][k-1].value - PCorr[i][j][k+1].value);
+			double PCT = PCorr[i][j][k+1].value*PCorr[i][j][k].FZT
+					+ PCorr[i][j][k].value*PCorr[i][j][k].FZP;
+					
+			double PCB = PCorr[i][j][k].value*PCorr[i][j][k-1].FZT
+					+ PCorr[i][j][k-1].value*PCorr[i][j][k-1].FZP;
+
+			Wcell[i][j][k].value = rAP[i][j][k].value*PCorr[i][j][k].volume*(PCB - PCT)/DZ;
 	
 		}
 

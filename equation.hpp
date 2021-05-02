@@ -49,8 +49,7 @@ public:
 			Fields::vec3dField&, Fields::vec3dField&, int&);
 	Fields::vec3dField massFluxCorrection(Fields::vec3dField&, Fields::vec3dField&,
 			Fields::vec3dField&, Fields::vec3dField&, int&);
-	Fields::vec3dField cellVelocityCorrection(Fields::vec3dField&, Fields::vec3dField&,
-			Fields::vec3dField&, Fields::vec3dField&, int&);
+	Fields::vec3dField cellVelocityCorrection(Fields::vec3dField&, int&);
 	double value;
 	double Residual;
 	double R2;
