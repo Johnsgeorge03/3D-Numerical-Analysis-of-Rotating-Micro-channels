@@ -1,7 +1,7 @@
 #include "equation.hpp"
 
 Equation::Equation(const FiniteMatrix::finiteMat& Fmatrix)
-:value(0.0), Residual(0.0), R2(0.0), R2norm(0.0), RESOR(0.0), URF(0.95), EqnName("U-Eqn"), SOR(0.2),
+:value(0.0), Residual(0.0), R2(0.0), R2norm(0.0), RESOR(0.0), URF(0.8), EqnName("U-Eqn"), SOR(0.05),
 APInitial(Fmatrix),
 APNot(Fmatrix.size(),vector<vector<FiniteMatrix>>(Fmatrix[0].size(), vector<FiniteMatrix>(Fmatrix[0][0].size()))),
 AP(Fmatrix.size(),vector<vector<FiniteMatrix>>(Fmatrix[0].size(), vector<FiniteMatrix>(Fmatrix[0][0].size()))),
@@ -279,7 +279,7 @@ void Equation::relax(Fields::vec3dField& vec, Fields::vec3dField& vecold)
 
 //----------------------------ASSEMBLE PRESSURECORRECTION EQUATION -------------------------------------------//
 
-void Equation::assemblePressureCorrectionEquation()
+void Equation::assemblePressureCorrectionEquation(FiniteMatrix::finiteMat& APW, Fields::vec3dField& vec)
 {
 	for(unsigned int i = 1; i<AP.size() - 1; i++)
 	{
@@ -296,6 +296,24 @@ void Equation::assemblePressureCorrectionEquation()
 			}
 		}
 	}
+
+		//for cell near outlet boundary (top)
+
+	for(unsigned int i = 1; i<AP.size()-1; i++)
+	{
+		for(unsigned int j = 1; j<AP[0].size() - 1; j++)
+		{
+			for(unsigned int  k = AP[0][0].size() - 2; k < AP[0][0].size() - 1; k++)
+			{
+				AP[i][j][k].value = AP[i][j][k].value 
+			 + vec[i][j][k].density*vec[i][j][k].St*vec[i][j][k].St/APW[i][j][k].value;
+			 
+			 	rAP[i][j][k].value = 1.0/AP[i][j][k].value;
+			}
+		}
+	
+	}
+
 
 }
 
@@ -464,15 +482,15 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 				double H3 = sol.alfa*(LW[i][j][k].value*UT[i-1][j][k].value
 							+ LS[i][j][k].value*UT[i][j-1][k].value);
 
- 				LPR[i][j][k].value = AP[i][j][k].value + H1 + H2 + H3 
+ 				LPR[i][j][k].value = 1.0/(AP[i][j][k].value + H1 + H2 + H3 
 				- LB[i][j][k].value*UT[i][j][k-1].value- LW[i][j][k].value*UE[i-1][j][k].value 
-				- LS[i][j][k].value*UN[i][j-1][k].value;
+				- LS[i][j][k].value*UN[i][j-1][k].value + 1e-30);
 					// inertial damping
 			
 
-				UN[i][j][k].value = (-AN[i][j][k].value - H1)/LPR[i][j][k].value;
-				UE[i][j][k].value = (-AE[i][j][k].value - H2)/LPR[i][j][k].value;
-				UT[i][j][k].value = (-AT[i][j][k].value - H3)/LPR[i][j][k].value;
+				UN[i][j][k].value = (-AN[i][j][k].value - H1)*LPR[i][j][k].value;
+				UE[i][j][k].value = (-AE[i][j][k].value - H2)*LPR[i][j][k].value;
+				UT[i][j][k].value = (-AT[i][j][k].value - H3)*LPR[i][j][k].value;
 			}
 
 		}
@@ -505,7 +523,7 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 				AUX[i][j][k].value = (RES[i][j][k].value 
 						- LB[i][j][k].value*AUX[i][j][k-1].value
 						- LW[i][j][k].value*AUX[i-1][j][k].value 
-						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; 
+						- LS[i][j][k].value*AUX[i][j-1][k].value)*LPR[i][j][k].value; 
 						// U*delta
 				
 				//LUdelta = RES
@@ -526,7 +544,7 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 */	// TESTING END
 
 	R2 = std::sqrt(Residual);
-	double small = 1e-20;
+	double small = 1e-30;
 	if(L==0)
 	{
 		RESOR = R2;
@@ -534,26 +552,6 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 	
 	R2norm = R2/(RESOR + small);
 	
-	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1
-				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
-
-	if(R2norm <= tolerance)
-	{
-		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
-		break;
-	}
-
-	else if(L == 0 and RESOR < 1e-12)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
-	else if(L == iterations - 1)
-	{
-		cout<<EqnName<<":SIP Solver Max iteration reached. NOT CONVERGED. EXITING PROGRAM "<<endl;
-		exit(0);
-
-	}
 	//Back substitution and correction
 	for(unsigned int k = phi[0][0].size() - 2; k >= 1; --k)
 	{
@@ -571,6 +569,32 @@ Fields::vec3dField Equation::sipSolver(Fields::vec3dField& phi, Fields::vec3dFie
 
 
 		}
+
+	}
+	// check convergence
+	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1
+				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+	if(R2norm <= SOR)
+	{
+		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
+		break;
+	}
+/*
+	if(R2norm <= tolerance)
+	{
+		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
+		break;
+	}
+
+	else if(L == 0 and RESOR < 1e-12)
+	{
+		cout<<EqnName<<": No need for inner iteration "<<endl;
+		break;
+	}
+*/	
+	else if(L == iterations - 1)
+	{
+		cout<<EqnName<<":SIP Solver Max iteration reached. Inner Iteration over "<<endl;
 
 	}
 
@@ -625,14 +649,15 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 							+ LS[i][j][k].value*UT[i][j-1][k].value);
 
 			
-				LPR[i][j][k].value = AP[i][j][k].value + H1 + H2 + H3 
+				LPR[i][j][k].value =1.0/( AP[i][j][k].value + H1 + H2 + H3 
 				- LB[i][j][k].value*UT[i][j][k-1].value
-				- LW[i][j][k].value*UE[i-1][j][k].value - LS[i][j][k].value*UN[i][j-1][k].value;
+				- LW[i][j][k].value*UE[i-1][j][k].value - LS[i][j][k].value*UN[i][j-1][k].value
+				+ 1e-30);
 
 
-				UN[i][j][k].value = (-AN[i][j][k].value - H1)/LPR[i][j][k].value;
-				UE[i][j][k].value = (-AE[i][j][k].value - H2)/LPR[i][j][k].value;
-				UT[i][j][k].value = (-AT[i][j][k].value - H3)/LPR[i][j][k].value;
+				UN[i][j][k].value = (-AN[i][j][k].value - H1)*LPR[i][j][k].value;
+				UE[i][j][k].value = (-AE[i][j][k].value - H2)*LPR[i][j][k].value;
+				UT[i][j][k].value = (-AT[i][j][k].value - H3)*LPR[i][j][k].value;
 			}
 
 		}
@@ -664,7 +689,7 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 				AUX[i][j][k].value = (RES[i][j][k].value 
 						- LB[i][j][k].value*AUX[i][j][k-1].value
 						- LW[i][j][k].value*AUX[i-1][j][k].value 
-						- LS[i][j][k].value*AUX[i][j-1][k].value)/LPR[i][j][k].value; 
+						- LS[i][j][k].value*AUX[i][j-1][k].value)*LPR[i][j][k].value; 
 						// U*delta
 				
 				//LUdelta = RES
@@ -676,34 +701,14 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 	}
 
 	R2 = std::sqrt(Residual);
-	double small = 1e-20;
+	double small = 1e-30;
 	if(L==0)
 	{
 		RESOR = R2;
 	}
-	
+
 	R2norm = R2/(RESOR + small);
 	
-	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1 
-				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
-	
-	if(R2norm <= tolerance)
-	{
-		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
-		break;
-	}
-
-	else if(L == 0 and RESOR < 1e-12)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
-	else if(L == iterations - 1)
-	{
-		cout<<EqnName<<":SIP Solver Max iteration reached. NOT CONVERGED. EXITING PROGRAM "<<endl;
-		exit(0);
-
-	}
 
 	//Back substitution and correction
 	for(unsigned int k = phi[0][0].size() - 2; k >= 1; --k)
@@ -724,6 +729,37 @@ Fields::vec3dField Equation::sipSolverPressure(Fields::vec3dField& phi, Solution
 		}
 
 	}
+	
+	// check convergence
+	cout<<EqnName<< " Inner iteration of SIP Solver "<< L+1 
+				<< " and R2 --> " <<R2<< " R2norm "<< R2norm <<endl;
+	if(R2norm <= SOR)
+	{
+		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
+		break;
+	}
+	
+/*
+	if(R2norm <= tolerance)
+	{
+		cout<<EqnName<<": Inner iteration of SIP Solver converged at iteration "<< L+1<<endl;
+		break;
+	}
+	
+	if(L == 0 and RESOR < 1e-10)
+	{
+		cout<<EqnName<<": No need for inner iteration "<<endl;
+		break;
+	}
+
+*/
+	else if(L == iterations - 1)
+	{
+		cout<<EqnName<<":SIP Solver Max iteration reached. Inner iteration over "<<endl;
+
+	}
+
+
 	} // end iteration loop
 
 	cout<<endl;
@@ -805,11 +841,7 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol,
 
 	for(unsigned int L = 0; L<iterations; L++)
 	{
-	if(L == 0 and RESOR < 1e-10)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
+
 	double BET = 0.0;
 	for(unsigned int k = 1; k< phi[0][0].size() -1; k++)
 	{
@@ -1059,18 +1091,17 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol,
 		}
 
 	}
-
-
-/*	// TESTING ONLY
+/*
+	// TESTING ONLY
 
 	cout<<" ITERATION NO: "<<L + 1<<endl;
 	cout<<EqnName<<"  - RES " <<endl;
 	testmat.print3dmat(RES);
 	cout<<" END RES "<<endl;
-*/	// TESTING END
-
-	RESL = std::sqrt(RESL);
-	R2 = RESL;
+	// TESTING END
+*/
+	R2 = std::sqrt(RESL);
+	
 	
 	// CHECK CONVERGENCE
 
@@ -1082,24 +1113,14 @@ Fields::vec3dField Equation::CGSTAB(Fields::vec3dField& phi, Solution& sol,
 
 	if(L == iterations - 1)
 	{
-		cout<<EqnName<<":CGSTAB Solver Max iteration reached. NOT CONVERGED. EXITING PROGRAM "<<endl;
-		exit(0);
+		cout<<EqnName<<":CGSTAB Solver Max iteration reached. Inner iteration over "<<endl;
 	}
 
-	if(R2 > 1e-10)
-	{
-		if(R2norm <= tolerance and R2 < 1e-6)
-		{
-			cout<<EqnName<<": Inner iteration of CGSTAB Solver converged at iteration "<< L+1<<endl;
-			break;
-		}
-	}
-
-	else
+	
+	if(R2norm <= SOR)
 	{
 		cout<<EqnName<<": Inner iteration of CGSTAB Solver converged at iteration "<< L+1<<endl;
 		break;
-
 	}
 
 
@@ -1187,11 +1208,6 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 
 	for(unsigned int L = 0; L<iterations; L++)
 	{
-	if(L == 0 and RESOR < 1e-10)
-	{
-		cout<<EqnName<<": No need for inner iteration "<<endl;
-		break;
-	}
 
 	double BET = 0.0;
 	for(unsigned int k = 1; k< phi[0][0].size() -1; k++)
@@ -1453,8 +1469,7 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 	// TESTING END
 */
 
-	RESL = std::sqrt(RESL);
-	R2 = RESL;
+	R2 = std::sqrt(RESL);
 	
 	// CHECK CONVERGENCE
 
@@ -1466,25 +1481,14 @@ Fields::vec3dField Equation::CGSTABvel(Fields::vec3dField& phi, Fields::vec3dFie
 
 	if(L == iterations - 1)
 	{
-		cout<<EqnName<<":CGSTAB Solver Max iteration reached. NOT CONVERGED. EXITING PROGRAM "<<endl;
-		exit(0);
+		cout<<EqnName<<":CGSTAB Solver Max iteration reached. Inner ieration over  "<<endl;
 
 	}
 
-	if(R2 > 1e-10)
-	{
-		if(R2norm <= tolerance and R2 <1e-6)
-		{
-			cout<<EqnName<<": Inner iteration of CGSTAB Solver converged at iteration "<< L+1<<endl;
-			break;
-		}
-	}
-
-	else
+	if(R2norm <= SOR)
 	{
 		cout<<EqnName<<": Inner iteration of CGSTAB Solver converged at iteration "<< L+1<<endl;
 		break;
-
 	}
 
 	} // end iteration loop
@@ -1744,8 +1748,9 @@ unsigned int& iterations, double& tolerance)
 //------------------------- RHIE - CHOW MOMENTUM INTERPOLATION -----------------------------------------------//
 
 Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fields::vec3dField& pr, 
-		Fields::vec3dField& velprev, Fields::vec3dField& velWallold, Fields::vec3dField& sourceWallvel,
-		Solution& sol_, int& direction)
+		Fields::vec3dField& velprev, Fields::vec3dField& velWallold, Fields::vec3dField& velold,
+		Fields::vec3dField& UvelWallprev, Fields::vec3dField& VvelWallprev,
+		Fields::vec3dField& WvelWallprev, Solution& sol_, int& direction)
 {
 		
 	if(direction == 1) // U vel interpolation
@@ -1782,25 +1787,34 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 				vel[i][j][k].volume*(pr[i][j][k].value - pr[i+1][j][k].value)
 							/vel[i][j][k].DXPtoE
 				+ sol_.density*velWallold[i][j][k].value*vel[i][j][k].volume/sol_.dt
-				- 2*sol_.density*sourceWallvel[i][j][k].value*sol_.omega*vel[i][j][k].volume
-				+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
-				*(vel[i+1][j][k].XC*vel[i+1][j][k].XC - vel[i][j][k].XC*vel[i][j][k].XC)/2;
+				- 2*sol_.density*WvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume;
+			//	+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
+			//	*(vel[i+1][j][k].XC*vel[i+1][j][k].XC - vel[i][j][k].XC*vel[i][j][k].XC)/2;
 
 
-			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_;
+			double wallvelrelaxed = (1-URF)*(UvelWallprev[i][j][k].value - 
+							(f*velprev[i+1][j][k].value + (1-f)*velprev[i][j][k].value));
+
+			double wallveloldrelaxed = sol_.density*vel[i][j][k].volume/(AP_*sol_.dt)
+								*(velWallold[i][j][k].value - 
+							(f*velold[i+1][j][k].value + (1-f)*velold[i][j][k].value));
+
+
+			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_ + wallvelrelaxed 
+						+ wallveloldrelaxed;
 
 
 		}
 
 		forWestBoundary(wallvel)
 		{
-			wallvel[i][j][k].value = vel[i][j][k].value;
+			wallvel[i][j][k].value = 0.0;
 
 		}	
 
 		forEastBoundary(wallvel)
 		{
-			wallvel[i][j][k].value = vel[i+1][j][k].value;
+			wallvel[i][j][k].value = 0.0;
 
 		}
 		return wallvel;
@@ -1840,20 +1854,29 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 							/vel[i][j][k].DYPtoN
 				+ sol_.density*velWallold[i][j][k].value*vel[i][j][k].volume/sol_.dt;
 
-			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_;
+			double wallvelrelaxed = (1-URF)*(VvelWallprev[i][j][k].value - 
+							(f*velprev[i][j+1][k].value + (1-f)*velprev[i][j][k].value));
+
+			double wallveloldrelaxed = sol_.density*vel[i][j][k].volume/(AP_*sol_.dt)
+								*(velWallold[i][j][k].value - 
+							(f*velold[i][j+1][k].value + (1-f)*velold[i][j][k].value));
+
+
+			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_ + wallvelrelaxed 
+						+ wallveloldrelaxed;
 
 		}
 
 		
 		forSouthBoundary(wallvel)
 		{
-			wallvel[i][j][k].value = vel[i][j][k].value;
+			wallvel[i][j][k].value = 0.0;
 		}
 		
 		forNorthBoundary(wallvel)
 		{
 		
-			wallvel[i][j][k].value = vel[i][j+1][k].value;
+			wallvel[i][j][k].value = 0.0;
 		}
 		
 		return wallvel;
@@ -1895,12 +1918,20 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 				vel[i][j][k].volume*(pr[i][j][k].value - pr[i][j][k+1].value)
 						/vel[i][j][k].DZPtoT
 				+ sol_.density*velWallold[i][j][k].value*vel[i][j][k].volume/sol_.dt
-				+ 2*sol_.density*sourceWallvel[i][j][k].value*sol_.omega*vel[i][j][k].volume
-				+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
-				*(vel[i][j][k+1].ZC*vel[i][j][k+1].ZC - vel[i][j][k].ZC*vel[i][j][k].ZC)/2;
-			 
+				+ 2*sol_.density*UvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume;
+			//	+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
+			//	*(vel[i][j][k+1].ZC*vel[i][j][k+1].ZC - vel[i][j][k].ZC*vel[i][j][k].ZC)/2;
+			
+			double wallvelrelaxed = (1-URF)*(WvelWallprev[i][j][k].value - 
+							(f*velprev[i][j][k+1].value + (1-f)*velprev[i][j][k].value));
 
-			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_;
+			double wallveloldrelaxed = sol_.density*vel[i][j][k].volume/(AP_*sol_.dt)
+								*(velWallold[i][j][k].value - 
+							(f*velold[i][j][k+1].value + (1-f)*velold[i][j][k].value));
+
+
+			wallvel[i][j][k].value = H_ + Press_BodyF_Time/AP_ + wallvelrelaxed 
+						+ wallveloldrelaxed;
 
 		}
 
@@ -1914,9 +1945,10 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 		forTopBoundary(wallvel)
 		{
 			wallvel[i][j][k].value = vel[i][j][k+1].value;
-			wallvel[i][j][k].dt = vel[i][j][k].St*rAP[i][j][k].value/2.0;
+//			wallvel[i][j][k].dt = vel[i][j][k].St*rAP[i][j][k].value/2.0;
 		}
-		
+
+
 		return wallvel;
 	}
 	
@@ -2069,13 +2101,13 @@ Fields::vec3dField Equation::faceVelocityCorrection(Fields::vec3dField& PCorr, F
 				*(PCorr[i][j][k].value - PCorr[i][j][k+1].value)/AP_;
 	
 		}
-		
+	/*	
 		forTopBoundary(wallvel)
 		{
 			wallvel[i][j][k].value = WWall[i][j][k].dt
 			*(PCorr[i][j][k].value - PCorr[i][j][k+1].value);
 		}
-
+	*/
 
 		return wallvel;
 	}
@@ -2126,10 +2158,13 @@ Fields::vec3dField Equation::massFluxCorrection(Fields::vec3dField& PCorr, Field
 		{
 			massFlux[i][j][k].value =PCorr[i][j][k].St*PCorr[i][j][k].density*WWCorr[i][j][k].value;
 		}
+
+	/*	
 		forTopBoundary(massFlux)
 		{
 			massFlux[i][j][k].value =PCorr[i][j][k].St*PCorr[i][j][k].density*WWCorr[i][j][k].value;
 		}
+	*/
 
 		return massFlux;
 

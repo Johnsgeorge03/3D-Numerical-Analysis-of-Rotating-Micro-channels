@@ -23,7 +23,7 @@ public:
 
 	void relax(Fields::vec3dField&, Fields::vec3dField&);
 
-	void assemblePressureCorrectionEquation();
+	void assemblePressureCorrectionEquation(FiniteMatrix::finiteMat&, Fields::vec3dField&);
 
 	//solvers
 	Fields::vec3dField solveVelocity(Fields::vec3dField&, unsigned int& );
@@ -41,7 +41,8 @@ public:
 
 	
 	Fields::vec3dField momentumInterpolation(Fields::vec3dField&, Fields::vec3dField&, 
-		Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&, Solution&, int&);
+		Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&, Fields::vec3dField&,
+		Fields::vec3dField&, Fields::vec3dField&, Solution&, int&);
 
 	Fields::vec3dField massFluxCalculation(Fields::vec3dField&, Fields::vec3dField&, int&);
 

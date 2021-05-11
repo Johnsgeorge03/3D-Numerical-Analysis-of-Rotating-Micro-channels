@@ -1,8 +1,8 @@
 // initialiazing geometry parameters
 
-int NX = 30, NY = 30, NZ = 120;
-double lengthX = 4.0, lengthY = 4.0, lengthZ = 40.0;
-double beginX = 0.0, beginY = 0.0 , beginZ = 0.0;
+int NX = 31, NY = 31, NZ = 151;
+double lengthX = 0.0002, lengthY = 0.0002, lengthZ = 0.02;
+double beginX = 0.0, beginY = 0.0 , beginZ = 0.02;
 
 Mesh mymesh_ (beginX, beginY, beginZ, NX, NY, NZ, lengthX, lengthY, lengthZ);
 
@@ -81,7 +81,7 @@ fieldOper.getGridInfoPassed(massFluxT, mymesh_, sol);
     string bottom = "BOTTOM";
 
 // initial guess and inlet velocity
-    double inletwvel  = 0.0005;
+    double inletwvel  = 0.1;
     double u_guess    = 0.0;
     double v_guess    = 0.0;
     double w_guess    = 0.0;

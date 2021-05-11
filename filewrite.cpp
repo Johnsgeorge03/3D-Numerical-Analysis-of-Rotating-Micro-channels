@@ -35,9 +35,10 @@ void fileWriter::writeUVWP(string& name, int time_, Mesh& Mesh_,
         int NXtemp 		= Utemp.size();
         int NYtemp 		= Utemp[0].size();
 	int NZtemp		= Utemp[0][0].size();
+
+	fprintf(outfile, "VARIABLES=\t\"X\"\t, \t\"Y\"\t, \t\"Z\"\t, \t\"U\"\t, \t\"V\"\t, \t\"W\"\t,\t\"P\"\n");
 	fprintf(outfile, "ZONE  F=POINT\n");
 	fprintf(outfile, "I=%d, J=%d, K=%d\n", NXtemp, NYtemp, NZtemp);
-	fprintf(outfile, "\t\"X\"\t, \t\"Y\"\t, \t\"Z\"\t, \t\"U\"\t, \t\"V\"\t, \t\"W\"\t,\t\"P\"\n");
     	double xpos, ypos, zpos, UU, VV, WW, PP;
 
 

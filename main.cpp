@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	#include "initializevariables.hpp"
     	#include "initializefinitematrixvar.hpp" 
 	int timeiter = 0;
-	int maxtimeit = 1000; // max timestep
+	int maxtimeit = 1; // max timestep
 
 	//--------------------------------------- START OF TIME ITERATION -----------------------------------//
 
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	double R2PMax = 0.0;
 	double vel_tol = 1e-6;  //tolerance for solver - velocity
 	double pres_tol = 1e-4; //tolerance for solver - pressure
-	double tolerance = 1e-10; // tolerance for outer iteration
+	double tolerance = 1e-9; // tolerance for outer iteration
 	int iter = 0;
 
 	//--------------------------------------- START OF SIMPLE ITERATION ----------------------------------//
@@ -54,10 +54,10 @@ int main(int argc, char *argv[])
 		int northdir = 2; 
 		int topdir   = 3;
 
-		unsigned int Uiterations  = 50000;
-		unsigned int Viterations  = 50000; 
-		unsigned int Witerations  = 50000;
-		unsigned int pressureiter = 100000;
+		unsigned int Uiterations  = 10;
+		unsigned int Viterations  = 10; 
+		unsigned int Witerations  = 10;
+		unsigned int pressureiter = 2000;
 		
 
 		
@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
 		cout<<endl;
 		Fields::vec3dField U_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 		U_ = U;
+
 		if(iter == 0)
 		{
 			U_ = UEqn->sipSolver(U_, UT, sol, Uiterations, vel_tol);
@@ -85,8 +86,9 @@ int main(int argc, char *argv[])
 		{
 			U_ = UEqn->CGSTABvel(U_, UT, sol, Uiterations, vel_tol);
 		}
+		
 		fieldOper.getGridInfoPassed(U_, mymesh_, sol);
-		fieldOper.copyOutletVelocity(U_);
+
 
 		
 
@@ -104,6 +106,8 @@ int main(int argc, char *argv[])
 		cout<<endl;
 		Fields::vec3dField V_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 		V_ = V;
+
+		
 		if(iter>0)
 		{
 			V_ = VEqn->CGSTABvel(V_, VT, sol, Viterations, vel_tol);
@@ -111,9 +115,9 @@ int main(int argc, char *argv[])
 		else
 		{
 			V_ = VEqn->sipSolver(V_, VT, sol, Viterations, vel_tol);
-		}
+		}		
 		fieldOper.getGridInfoPassed(V_, mymesh_, sol);
-		fieldOper.copyOutletVelocity(V_);
+
 
 
 
@@ -131,6 +135,8 @@ int main(int argc, char *argv[])
 		cout<< endl;
 		Fields::vec3dField W_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 		W_ = W;
+
+
 		if(iter > 0)
 		{
 			W_ = WEqn->CGSTABvel(W_, WT, sol, Witerations, vel_tol);
@@ -140,31 +146,35 @@ int main(int argc, char *argv[])
 			W_ = WEqn->sipSolver(W_, WT, sol,Witerations, vel_tol);
 		}
 		fieldOper.getGridInfoPassed(W_, mymesh_, sol);
-		fieldOper.copyOutletVelocity(W_); 
+		fieldOper.linearextrapolateCondition(W_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, top);
+		
 
 		//-------------END OF COEFFICIENT CALCULATION AND SOLVING MOMN EQN ----------------------//
 
-
 /*
+
+		// TESTING
 		fileWriter fileWriter3_;
 		string filename3 = "zbeforecorrection";
 		int time3 = iter;
 		fileWriter3_.writeUVWP(filename3, time3, mymesh_,U_,V_,W_,P);
+		// TESTING END
 */
+	
 
-		
 
 		//--------------------- RHIE-CHOW MOMENTUM INTERPOLATION --------------------------------//
 
-		UW = UEqn->momentumInterpolation(U_, P, U, UWT, WW, sol, eastdir);
-		VW = VEqn->momentumInterpolation(V_, P, V, VWT, VW, sol, northdir);
-		WW = WEqn->momentumInterpolation(W_, P, W, WWT, UW, sol, topdir);
+		UW = UEqn->momentumInterpolation(U_, P, U, UWT, UT, UW, VW, WW, sol, eastdir);
+		VW = VEqn->momentumInterpolation(V_, P, V, VWT, VT, UW, VW, WW, sol, northdir);
+		WW = WEqn->momentumInterpolation(W_, P, W, WWT, WT, UW, VW, WW, sol, topdir);
 		fieldOper.boundaryCondition(WW, bottom, inletwvel);
-
 		
 		//------------------ END OF RHIE-CHOW MOMENTUM INTERPOLATION ----------------------------//	
 		
-		
+
+
+
 
 		//------------------------- MASS FLUX CALCULATON ----------------------------------------//
 
@@ -173,10 +183,12 @@ int main(int argc, char *argv[])
 		massFluxN = VEqn->massFluxCalculation(VW, V_, northdir);
 		massFluxT = WEqn->massFluxCalculation(WW, W_, topdir);
 		fieldOper.boundaryCondition(massFluxT, bottom, massfluxwinlet);
-	
-		
+
 		//----------------------- END OF MASS FLUX CALCULATION ----------------------------------//
 	
+
+
+
 
 
 		//-------------------------PRESSURE COEFFICIENT ASSEMBLY---------------------------------//
@@ -191,10 +203,12 @@ int main(int argc, char *argv[])
 		);
 
 		PEqn->EqnName = "P-Eqn";
-		PEqn->assemblePressureCorrectionEquation();
-	
+		PEqn->assemblePressureCorrectionEquation(WEqn->AP, P);
+	//	PEqn->SOR = 1.0e-3;
 		//-------------------- END OF PRESSURE COEFFICIENT ASSEMBLY -----------------------------//
 		
+
+
 
 
 		//--------------------INITIALIZING CORRECTION FIELD TO ZERO -----------------------------//
@@ -213,20 +227,46 @@ int main(int argc, char *argv[])
 		//------------------END OF INITIALIZING CORRECTION FIELD TO ZERO ------------------------//
 
 
+
+
 	
 		//--------------------------- SOLVING PRESSURE CORRECTION -------------------------------//
-
-		cout<<" Solving pressure correction equation"<< endl;
+		
+		cout<<" Solving pressure correction equation "<< endl;
 		cout<<endl;
 		PC = PEqn->CGSTAB(PC, sol, pressureiter, pres_tol);
+
+/*
+		if(iter > 0)
+		{
+			PC = PEqn->CGSTAB(PC, sol, pressureiter, pres_tol);
+		}
+		else
+		{
+			PC = PEqn->sipSolverPressure(PC, sol, pressureiter, pres_tol);
+		}
+*/
+
+
+//		PC = PEqn->CGSTAB(PC, sol, pressureiter, pres_tol);
 		fieldOper.getGridInfoPassed(PC, mymesh_, sol);
-		
+/*
+		//----TESTING 
+		cout<< " PC "<<" iteration "<<iter <<endl;
+		fieldOper.print3dmat(PC);
+		cout<<" end PC " <<endl;
+		exit(0);
+		//----END TESTING
+*/
+
 /*		
 		PC = PEqn->ICCG(PC, sol, pressureiter, pres_tol);
 		PC = PEqn->sipSolverPressure(PC, sol, pressureiter, pres_tol);
 		PC = PEqn->solvePressure(PC, pressureiter);
 */		
 		//---------------------------END OF SOLVING PRESSURE CORRECTION -------------------------//
+
+
 
 
 
@@ -239,6 +279,7 @@ int main(int argc, char *argv[])
 		fieldOper.linearextrapolateCondition(PC, mymesh_.FX, mymesh_.FY, mymesh_.FZ, bottom);
 
 		//--------------------END OF PRESSURE CORRECTION EXTRAPOLATION --------------------------//
+
 
 
 
@@ -279,8 +320,18 @@ int main(int argc, char *argv[])
 			VW[i][j][k].value += VWC[i][j][k].value;
 			massFluxN[i][j][k].value += massFluxNC[i][j][k].value;
 		}
-			
-	
+		
+
+		forAllInternal(WW)
+		{
+			WW[i][j][k].value += WWC[i][j][k].value;
+			massFluxT[i][j][k].value += massFluxTC[i][j][k].value;
+		}
+
+		
+
+		
+/*	
 		for( unsigned int i = 1; i<WW.size() - 1;i++)
 		{
 			for(unsigned int j = 1; j<WW[0].size() -1; j++)
@@ -292,6 +343,15 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
+*/
+/*
+		//----TESTING 
+		cout<< " WW "<<" iteration "<<iter <<endl;
+		fieldOper.print3dmat(WW);
+		cout<<" end WW " <<endl;
+
+		//----END TESTING
+*/
 
 		Fields::vec3dField P_ (NI, Fields::vec2dField(NJ, Fields::vec1dField(NK)));
 
@@ -306,31 +366,15 @@ int main(int argc, char *argv[])
 			V_[i][j][k].value = V_[i][j][k].value + VC[i][j][k].value;
 			W_[i][j][k].value = W_[i][j][k].value + WC[i][j][k].value;
 		}
+
+
 		
-		double total_outlet_mass_flux = 0.0;
-
-		forTopBoundary(W_)
-		{
-			W_[i][j][k].value = WW[i][j][k-1].value;
-			total_outlet_mass_flux += sol.density*W_[i][j][k-1].St*W_[i][j][k].value;
-
-		}
-		
-		double total_inlet_mass_flux = lengthX*lengthY*sol.density*inletwvel;
-
-/*
-		forTopBoundary(W_)
-		{
-			W_[i][j][k].value = total_inlet_mass_flux*W_[i][j][k].value
-						/total_outlet_mass_flux;
-		}
-*/		
 		//---------------------------------- END OF CORRECTION ------------------------------------//
 
 
 
 
-		//--------------------------------PRESSURE EXTRAPOLATION ----------------------------------//
+		//--------------------------- PRESSURE & W EXTRAPOLATION ----------------------------------//
 
 		fieldOper.linearextrapolateCondition(P_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, east);
 		fieldOper.linearextrapolateCondition(P_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, west);
@@ -338,7 +382,54 @@ int main(int argc, char *argv[])
 		fieldOper.linearextrapolateCondition(P_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, south);
 		fieldOper.linearextrapolateCondition(P_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, bottom);
 
-		//----------------------------END OF PRESSURE EXTRAPOLATION -------------------------------//
+		fieldOper.linearextrapolateCondition(W_, mymesh_.FX, mymesh_.FY, mymesh_.FZ, top);
+
+		//-------------------------END OF PRESSURE & W EXTRAPOLATION -------------------------------//
+
+
+/*
+		//---------------------CORRECTION OUTLET TO SATISFY CONTINUITY -----------------------------//
+
+		
+		double total_outlet_mass_flux = 0.0;
+		double total_inlet_mass_flux = lengthX*lengthY*sol.density*inletwvel;
+
+		forTopBoundary(W_)
+		{
+			total_outlet_mass_flux += W_[i][j][k].value;
+		}
+
+		double K = (total_inlet_mass_flux/total_outlet_mass_flux);
+		
+		cout<<endl;
+		cout<< " Inlet / outlet " << K<< endl;
+		if(total_outlet_mass_flux != 0)
+		{
+		forTopBoundary(W_)
+		{
+			W_[i][j][k].value = W_[i][j][k].value*K;
+			W_[i][j][k-1].value = W_[i][j][k-1].value*K;
+
+		}
+		}
+		//---------------------------END OF CONTINUITY CORRECTION AT OUTLET------------------------//
+*/
+
+		
+
+		//---------------------- COPYING OUTLET CELL CENTER VELOCITY TO FACE -----------------------//
+
+		forTopBoundary(WW)
+		{
+			WW[i][j][k].value = W_[i][j][k+1].value;
+			massFluxT[i][j][k].value = sol.density*W_[i][j][k].St*W_[i][j][k+1].value;
+		}
+
+
+		//----------------- END OF COPYING OUTLET CELL CENTER VELOCITY TO FACE ---------------------//
+
+
+
 
 
 
@@ -346,18 +437,26 @@ int main(int argc, char *argv[])
 		//------------------WRITING FILES AND UPDATING VALUES FOR NEXT ITERATION ------------------//
 
 		P = P_;
+		U = U_;
+		V = V_;
+		W = W_;
+/*
 		forAllInternal(U)
 		{
 			U[i][j][k].value = U[i][j][k].value + UEqn->URF*(U_[i][j][k].value - U[i][j][k].value);
 			V[i][j][k].value = V[i][j][k].value + VEqn->URF*(V_[i][j][k].value - V[i][j][k].value);
 			W[i][j][k].value = W[i][j][k].value + WEqn->URF*(W_[i][j][k].value - W[i][j][k].value);
 		}
+		fieldOper.linearextrapolateCondition(W, mymesh_.FX, mymesh_.FY, mymesh_.FZ, top);
+*/
+
 		fileWriter fileWriter2_;
 		string filename = "zsimpleiteration";
 		int time1 = iter;
 		fileWriter2_.writeUVWP(filename, time1, mymesh_,U,V,W,P);
 		
 		//-----------------END OF WRITING FILES AND UPDATING FILES FOR NEXT ITERATION--------------//
+
 
 
 
@@ -393,16 +492,16 @@ int main(int argc, char *argv[])
 		if(PEqn->RESOR <= tolerance)
 		{
 			fileWriter fileWriter_;
-			string filename = "zpipeflow";
+			string filename = "zpipeflow_rotation";
 			int time1 = timeiter;
-			fileWriter_.writeUVWP(filename, time1, mymesh_,U_,V_,W_,P);
+			fileWriter_.writeUVWP(filename, time1, mymesh_, U, V, W, P);
 
 			cout<< "-------*****----------RESULTS CONVERGED FOR OUTER-ITERATION "<< iter + 1 <<
-				" FOR TIMESTEP " << timeiter <<"-----------**********-------------"<<endl;
+				" FOR TIMESTEP " << timeiter + 1 <<"-----------**********-------------"<<endl;
 			UT = U;
 			VT = V;
 			WT = W;
-			PT = P_;
+			PT = P;
 			UWT = UW;
 			VWT = VW;
 			WWT = WW;

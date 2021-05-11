@@ -236,7 +236,7 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 	{
 		forEastBoundary(vec)
 		{
-			vec[i][j][k].value = vec[i-1][j][k].value;
+			vec[i][j][k].value = (3*vec[i-1][j][k].value - vec[i-2][j][k].value)*0.5;
 		}
 	}
 
@@ -244,7 +244,7 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 	{
 		forWestBoundary(vec)
 		{
-			vec[i][j][k].value = vec[i+1][j][k].value;
+			vec[i][j][k].value = (3*vec[i+1][j][k].value - vec[i+2][j][k].value)*0.5;
 		}
 	}
 
@@ -253,7 +253,7 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 		forNorthBoundary(vec)
 		{
 
-			vec[i][j][k].value = vec[i][j-1][k].value;
+			vec[i][j][k].value = (3*vec[i][j-1][k].value - vec[i][j-2][k].value)*0.5;
 
 		}
 	}
@@ -263,7 +263,7 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 		forSouthBoundary(vec)
 		{
 
-			vec[i][j][k].value = vec[i][j+1][k].value;
+			vec[i][j][k].value = (3*vec[i][j+1][k].value - vec[i][j+2][k].value)*0.5;
 		}
 	}
 
@@ -272,8 +272,7 @@ void Fields::linearextrapolateCondition(Fields::vec3dField& vec, vector<double>&
 		forTopBoundary(vec)
 		{
 			
-			vec[i][j][k].value = vec[i][j][k-1].value + (vec[i][j][k-1].value -
-				 	   vec[i][j][k-2].value)*FZvec[k-1];
+			vec[i][j][k].value = vec[i][j][k-1].value;
 
 		}
 
