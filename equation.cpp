@@ -1787,9 +1787,9 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 				vel[i][j][k].volume*(pr[i][j][k].value - pr[i+1][j][k].value)
 							/vel[i][j][k].DXPtoE
 				+ sol_.density*velWallold[i][j][k].value*vel[i][j][k].volume/sol_.dt
-				- 2*sol_.density*WvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume;
-			//	+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
-			//	*(vel[i+1][j][k].XC*vel[i+1][j][k].XC - vel[i][j][k].XC*vel[i][j][k].XC)/2;
+				- 2*sol_.density*WvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume
+				+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
+				*(vel[i+1][j][k].XC*vel[i+1][j][k].XC - vel[i][j][k].XC*vel[i][j][k].XC)/2;
 
 
 			double wallvelrelaxed = (1-URF)*(UvelWallprev[i][j][k].value - 
@@ -1918,9 +1918,9 @@ Fields::vec3dField Equation::momentumInterpolation(Fields::vec3dField& vel, Fiel
 				vel[i][j][k].volume*(pr[i][j][k].value - pr[i][j][k+1].value)
 						/vel[i][j][k].DZPtoT
 				+ sol_.density*velWallold[i][j][k].value*vel[i][j][k].volume/sol_.dt
-				+ 2*sol_.density*UvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume;
-			//	+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
-			//	*(vel[i][j][k+1].ZC*vel[i][j][k+1].ZC - vel[i][j][k].ZC*vel[i][j][k].ZC)/2;
+				+ 2*sol_.density*UvelWallprev[i][j][k].value*sol_.omega*vel[i][j][k].volume
+				+ sol_.density*sol_.omega*sol_.omega*vel[i][j][k].Se
+				*(vel[i][j][k+1].ZC*vel[i][j][k+1].ZC - vel[i][j][k].ZC*vel[i][j][k].ZC)/2;
 			
 			double wallvelrelaxed = (1-URF)*(WvelWallprev[i][j][k].value - 
 							(f*velprev[i][j][k+1].value + (1-f)*velprev[i][j][k].value));

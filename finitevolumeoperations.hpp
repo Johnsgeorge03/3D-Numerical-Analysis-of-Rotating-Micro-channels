@@ -277,9 +277,9 @@ FiniteMatrix::finiteMat forceSource(Fields::vec3dField& vec, Solution& sol_, int
 	{
 		if(direction_ == 1)  //for east direction (pass W velocity field )
         	{
-            		APTemp[i][j][k].sf = -2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume;
-					 //     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].Se
-					 //     *(vec[i][j][k].X*vec[i][j][k].X - vec[i-1][j][k].X*vec[i-1][j][k].X)/2;
+            		APTemp[i][j][k].sf = -2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume
+					        + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].Se
+					        *(vec[i][j][k].X*vec[i][j][k].X - vec[i-1][j][k].X*vec[i-1][j][k].X)/2;
 
        		}
 		
@@ -290,9 +290,9 @@ FiniteMatrix::finiteMat forceSource(Fields::vec3dField& vec, Solution& sol_, int
 
 		else if(direction_ == 3) // for top direction (pass U velocity field)
 		{
-			APTemp[i][j][k].sf = 2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume;
-				//	     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].St
-				//	     *(vec[i][j][k].Z*vec[i][j][k].Z - vec[i][j][k-1].Z*vec[i][j][k-1].Z)/2;
+			APTemp[i][j][k].sf = 2*vec[i][j][k].density*vec[i][j][k].value*sol_.omega*vec[i][j][k].volume
+					     + vec[i][j][k].density*sol_.omega*sol_.omega*vec[i][j][k].St
+					     *(vec[i][j][k].Z*vec[i][j][k].Z - vec[i][j][k-1].Z*vec[i][j][k-1].Z)/2;
 		}
 
 		

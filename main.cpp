@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 	double R2PMax = 0.0;
 	double vel_tol = 1e-6;  //tolerance for solver - velocity
 	double pres_tol = 1e-4; //tolerance for solver - pressure
-	double tolerance = 1e-9; // tolerance for outer iteration
+	double tolerance = 1e-13; // tolerance for outer iteration
 	int iter = 0;
 
 	//--------------------------------------- START OF SIMPLE ITERATION ----------------------------------//
